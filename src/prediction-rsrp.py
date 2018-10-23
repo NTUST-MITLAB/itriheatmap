@@ -15,7 +15,7 @@ from pylab import *
 import pickle
 import keras
 import loadnotebook
-from helper import *
+from predictionhelper import *
 
 import warnings
 warnings.filterwarnings('ignore')
