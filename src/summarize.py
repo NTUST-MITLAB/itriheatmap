@@ -53,7 +53,7 @@ def get_output_image(prefix="") :
 
     
 #if you need the feature in csv, set feature = True(it takes more time)
-result = extract_data(config={priority : [set_value]}, feature=False, pure=False)
+result = extract_data_directly(config={priority : [set_value]}, feature=False, pure=False)
 if set_value != 1  and priority == 6 :
     total_point = len(result.groupby(["location_x", "location_y"]).agg(['count']))
     print("total point : ", total_point)

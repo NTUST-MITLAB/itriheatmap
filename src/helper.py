@@ -263,6 +263,63 @@ def collect_df(paths) :
 
 def get_source(priority, set_value) :
      return '../data/demo-priority' + str(priority) + '/set' + str(set_value) + '/*'
+    
+def extract_data_setting(path) :
+    set_df = pd.DataFrame()
+    for level_1_filename in glob.glob(path) :
+        nmf_file, mrk_file = None, None
+        for level_2_filename in glob.glob(level_1_filename + "/*") :
+            real_filename = level_2_filename.split("/")[-1]
+
+            if "mrk" in real_filename :
+                mrk_file = level_2_filename            
+            if "nmf" in real_filename :
+                nmf_file = level_2_filename    
+            else :
+                for file in glob.glob(level_2_filename + "/*") :
+                    real_filename = file.split("/")[-1]
+
+                    if "mrk" in real_filename :
+                        mrk_file = file            
+                    if "nmf" in real_filename :
+                        nmf_file = file
+
+        if mrk_file is not None and nmf_file is not None : 
+            try :
+                df = extract_feature(mrk_file, nmf_file)
+                set_df = pd.concat([set_df, df])
+            except :
+                traceback.print_exc()
+        else :
+            print(level_1_filename, "mrk found", mrk_file is not None, "nmf found", nmf_file is not None)
+
+    # reorder the columns
+    return set_df[["location_x", "location_y", "PCI", "RSRP", "RSRQ", "SNR", "timestamp", "filename"]]
+
+def extract_data_directly(config, feature=True, pure=False) :
+    result = pd.DataFrame()
+    for priority in config :
+        for set_value in config[priority] :
+            try :
+                set_df = extract_data_setting(get_source(priority, set_value))
+                if feature :
+                    if not pure :
+                        set_df = add_features_summary(set_df, priority, set_value)
+                    else :
+                        set_df = add_features(set_df, priority, set_value)
+                        set_df["priority"] = priority
+                        set_df["set"] = set_value
+
+                result = pd.concat([result, set_df])
+            except :
+                print(priority, set_value)
+                traceback.print_exc()
+                return result 
+            
+    if pure :
+        result = result.drop(["timestamp", "filename"], axis=1)
+        result["PCI"] = result["PCI"].astype('int32')
+    return result
 
 def get_filenames(path) :
     mrk_filenames = []
