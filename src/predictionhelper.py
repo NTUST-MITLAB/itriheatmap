@@ -25,6 +25,14 @@ bs_location = {301:(868, 199), 302:(738, 206)}
 
 bs_location = {37:(902, 141), 38:(754, 149), 39:(249, 207),
                40:(633, 209), 41:(482, 150), 42:(695, 271)}
+bs_location = {
+    37:(249, 207),
+    38:(482, 150),
+    39:(633, 209),
+    40:(695, 271),
+    41:(754, 149), 
+    42:(902, 141)
+}
 
 angle_dict = {-135:6, -90:5, -45:4, 0:3, 45:2, 90:1, 135:8, 180:7}
 
@@ -44,6 +52,7 @@ color_list = [
     (165, 42, 42) #Brown 
 ]
 
+bs_color={x:y for x, y in zip(whitelist_PCI, color_list[:len(whitelist_PCI)])}
 pci_color_dict = {x:y for x, y in zip(whitelist_PCI, color_list[:len(whitelist_PCI)])}
 
 pci_color_dict_demo = {
@@ -454,6 +463,7 @@ def add_features_summary(df, priority, set_value) :
 def draw_base_station(source, adjustment=True) :
     for bs in bs_location :
         x, y = bs_location[bs]
+        color=bs_color[bs]
         
         if adjustment :
             y, x = transform_lat_lng(y, x)
@@ -461,11 +471,18 @@ def draw_base_station(source, adjustment=True) :
         d = 10
         top_left = (x-d, y+d)
         bottom_right = (x+d, y-d)
-        source = cv2.rectangle(source, top_left, bottom_right, (160, 32, 240), -1)
+        source = cv2.rectangle(source, top_left, bottom_right, color, -1)
+        source = cv2.rectangle(source, top_left, bottom_right, (0,0,0), 2)
     return source
 
-def get_map_image(station=True, new_format=True) :
+def get_map_image(station=True, new_format=True, black_white=False) :
     new_origin_img = cv2.imread('../image/5F.png') if new_format else cv2.imread('../image/map.png')
+    
+    if black_white :
+        new_origin_img = cv2.imread('../image/5F.png', 0) if new_format else cv2.imread('../image/map.png', 0)
+        _, im_bw = cv2.threshold(new_origin_img, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        new_origin_img = cv2.cvtColor(im_bw, cv2.COLOR_GRAY2BGR)
+    
     new_backtorgb = cv2.cvtColor(new_origin_img, cv2.COLOR_BGR2RGB)
     new_backtorgb = draw_base_station(new_backtorgb, new_format)
     return new_backtorgb
@@ -486,10 +503,13 @@ def visualize(source, x_list, y_list, color, filename=None, size=4, figsize=(18,
         
     return source
 
-def visualize_pci_heatmap(background, x_coord_list, y_coord_list, pci_pred, filename, figsize=(18,5), size=3) :
+def visualize_pci_heatmap(background, x_coord_list, y_coord_list, pci_pred, filename, 
+                          figsize=(18,5), size=3, adjustment=True) :
     background = np.array(background)
     heatmap = np.array(background)
     for lon, lat, pci_code in zip(x_coord_list, y_coord_list, pci_pred) :
+        if adjustment :
+            lat, lon = transform_lat_lng(lat, lon)
         pci = pci_decode[pci_code]
         colour = pci_color_dict[pci]
         heatmap = cv2.circle(heatmap, (lon, lat), 3, colour, -1)

@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[65]:
+# In[113]:
 
 
 from matplotlib import pyplot as plt
@@ -21,30 +21,30 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-# In[2]:
+# In[94]:
 
 
 demo_config = {6 : [1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 20, 
                     21, 22, 23, 24, 25, 26, 28, 29, 30, 31, 32, 33]}
+# demo_config = {6 : [1]}
 
-df = get_data(config=demo_config, pure=True, refresh=False)
-df_data = df
+df_data = get_data(config=demo_config, pure=True, refresh=False)
 print(len(df_data))
 
 
 # # RSRP Prediction 
 
-# In[3]:
+# In[95]:
 
 
 beam_columns = [c for c in df_data if "beam" in c]
 rsrp_data = df_data.drop(["RSRQ", "SNR"]+beam_columns, axis=1)
 rsrp_data = rsrp_data[rsrp_data["PCI"].isin(whitelist_PCI)]
 rsrp_data = rsrp_data.drop_duplicates()
-rsrp_data
+# rsrp_data
 
 
-# In[4]:
+# In[96]:
 
 
 rsrp_train, rsrp_test = pd.DataFrame(), pd.DataFrame()
@@ -59,7 +59,7 @@ for p in demo_config :
 print(len(rsrp_train), len(rsrp_test))
 
 
-# In[7]:
+# In[97]:
 
 
 x_rsrp_train = rsrp_train.drop(["RSRP", "priority"], axis=1)
@@ -79,7 +79,7 @@ for p in demo_config :
 
 # ## Generate all to be predicted data 
 
-# In[8]:
+# In[98]:
 
 
 x_cut = 50  
@@ -99,9 +99,10 @@ for lon in range(0, crop.shape[1]) :
         
 predicted_set_config = {6 : [1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 20,
                              21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]}
+# predicted_set_config = {6 : [1]}
 
 
-# In[10]:
+# In[99]:
 
 
 all_y_pci = load_from_pickle("predicted_pci_xgboost")
@@ -110,7 +111,7 @@ all_x_rsrp_dict = generate_predicted_data_rsrp(rsrp_data, predicted_set_config,
 all_x_rsrp_dict = {k:all_x_rsrp_dict[k].drop(beam_columns, axis=1) for k in all_x_rsrp_dict}
 
 
-# In[11]:
+# In[100]:
 
 
 all_x_rsrp_dict[(6, 27)]
@@ -118,7 +119,7 @@ all_x_rsrp_dict[(6, 27)]
 
 # # XGBoost 
 
-# In[21]:
+# In[101]:
 
 
 from xgboost import XGBRegressor
@@ -127,7 +128,7 @@ from bayes_opt import BayesianOptimization
 import sklearn.metrics as metric
 
 
-# In[58]:
+# In[11]:
 
 
 def xgb_evaluate(min_child_weight,
@@ -140,7 +141,7 @@ def xgb_evaluate(min_child_weight,
 
     params['min_child_weight'] = int(min_child_weight)
     params['max_depth'] = int(max_depth)
-    params['learning_rate'] = max(learning_rate, 0)
+    params['learning_rate'] = learning_rate/100
 
     xgb_model = XGBRegressor(**params)
     xgb_model.fit(x_rsrp_train, y_rsrp_train)
@@ -151,17 +152,17 @@ def xgb_evaluate(min_child_weight,
     return -1*rmse
 
 
-# In[69]:
+# In[12]:
 
 
 xgbBO = BayesianOptimization(xgb_evaluate, {'min_child_weight': (1, 20),
-                                            'learning_rate': (0.01, 0.1),
+                                            'learning_rate': (1, 10),
                                             'max_depth': (3, 15)})
 
-xgbBO.maximize(init_points=3, n_iter=5)
+xgbBO.maximize(init_points=3, n_iter=10)
 
 
-# In[75]:
+# In[102]:
 
 
 params = {'learning_rate' : 0.1, 'max_depth' : 15, 'min_child_weight':1}
@@ -169,8 +170,8 @@ xgb_model = XGBRegressor(**params)
 xgb_model.fit(x_rsrp_train, y_rsrp_train)
 y_rsrp_pred = xgb_model.predict(x_rsrp_test)
 predictions = [round(value) for value in y_rsrp_pred]
-mae = metrics.mean_absolute_error(y_rsrp_test, predictions)
-mse = metrics.mean_squared_error(y_rsrp_test, predictions)
+mae = metric.mean_absolute_error(y_rsrp_test, predictions)
+mse = metric.mean_squared_error(y_rsrp_test, predictions)
 rmse = math.sqrt(mse)
 print("MAE", mae, "MSE", mse, "RMSE", rmse)
 
@@ -192,13 +193,13 @@ for p in demo_config :
         print("[%d, %d] RMSE : %f" % (p, s, rmse))
 
 
-# In[42]:
+# In[103]:
 
 
 x_rsrp_train.columns[np.argsort(xgb_model.feature_importances_)][::-1]
 
 
-# In[110]:
+# In[104]:
 
 
 all_y_rsrp_xgboost = {set_val:xgb_model.predict(all_x_rsrp_dict[set_val]) for set_val in all_x_rsrp_dict}
@@ -206,7 +207,7 @@ all_y_rsrp_xgboost = {set_val:xgb_model.predict(all_x_rsrp_dict[set_val]) for se
 
 # # LGBM 
 
-# In[28]:
+# In[105]:
 
 
 import lightgbm
@@ -214,7 +215,7 @@ import lightgbm as lgb
 from lightgbm import LGBMRegressor
 
 
-# In[84]:
+# In[19]:
 
 
 def lgbm_evaluate(min_child_weight, max_depth,
@@ -228,7 +229,7 @@ def lgbm_evaluate(min_child_weight, max_depth,
     params['num_leaves'] = int(num_leaves)
     params['min_child_weight'] = int(min_child_weight)
     params['max_depth'] = int(max_depth)
-    params['learning_rate'] = max(learning_rate, 0)
+    params['learning_rate'] = learning_rate/100
 
     lgbm_model = LGBMRegressor(**params )
     lgbm_model.fit(x_rsrp_train, y_rsrp_train)
@@ -240,18 +241,32 @@ def lgbm_evaluate(min_child_weight, max_depth,
     return -1*rmse
 
 
-# In[86]:
+# In[21]:
 
 
-lgbmBO = BayesianOptimization(lgbm_evaluate, {'min_child_weight': (1, 20),
-                                              'learning_rate': (0.01, 0.1),
-                                              'max_depth': (-1, 15),
-                                              'num_leaves': (5, 50)})
+lgbmBO = BayesianOptimization(lgbm_evaluate, {'min_child_weight': (1, 5),
+                                              'learning_rate': (1, 50),
+                                              'max_depth': (-1, 10),
+                                              'num_leaves': (5, 10)})
 
-lgbmBO.maximize(init_points=5, n_iter=10)
+lgbmBO.maximize(init_points=5, n_iter=30)
 
 
-# In[102]:
+# In[106]:
+
+
+params = {'learning_rate' : 0.1, 'max_depth' : 10, 'min_child_weight':1, 'num_leaves':10}
+lgbm_model = LGBMRegressor(**params)
+lgbm_model.fit(x_rsrp_train, y_rsrp_train)
+y_rsrp_pred = lgbm_model.predict(x_rsrp_test)
+predictions = [round(value) for value in y_rsrp_pred]
+mae = metric.mean_absolute_error(y_rsrp_test, predictions)
+mse = metric.mean_squared_error(y_rsrp_test, predictions)
+rmse = math.sqrt(mse)
+print("MAE", mae, "MSE", mse, "RMSE", rmse)
+
+
+# In[107]:
 
 
 params = {'learning_rate' : 0.1, 'max_depth' : 15, 'min_child_weight':20, 'num_leaves':50}
@@ -259,8 +274,8 @@ lgbm_model = LGBMRegressor(**params)
 lgbm_model.fit(x_rsrp_train, y_rsrp_train)
 y_rsrp_pred = lgbm_model.predict(x_rsrp_test)
 predictions = [round(value) for value in y_rsrp_pred]
-mae = metrics.mean_absolute_error(y_rsrp_test, predictions)
-mse = metrics.mean_squared_error(y_rsrp_test, predictions)
+mae = metric.mean_absolute_error(y_rsrp_test, predictions)
+mse = metric.mean_squared_error(y_rsrp_test, predictions)
 rmse = math.sqrt(mse)
 print("MAE", mae, "MSE", mse, "RMSE", rmse)
 
@@ -282,7 +297,7 @@ for p in demo_config :
         print("[%d, %d] RMSE : %.2f" % (p, s, rmse))
 
 
-# In[47]:
+# In[108]:
 
 
 x_rsrp_train.columns[np.argsort(lgbm_model.feature_importances_)][::-1]
@@ -294,9 +309,235 @@ x_rsrp_train.columns[np.argsort(lgbm_model.feature_importances_)][::-1]
 all_y_rsrp_lgbm = {set_val:lgbm_model.predict(all_x_rsrp_dict[set_val]) for set_val in all_x_rsrp_dict}
 
 
+# # Bayesian Opt 
+
+# In[63]:
+
+
+def generate_train_test(**param) :
+    curr_x_rsrp_train, curr_y_rsrp_train = pd.DataFrame(), []
+    
+    for set_val in param :
+        number = param[set_val]*(10**10**10)
+        
+        use_index = list(map(int, list("{0:b}".format(int(number)))))
+        rsrp_train_data = rsrp_train[rsrp_train.set == int(set_val)].copy()
+        diff = len(rsrp_train_data) - len(use_index)
+        use_index = [0]*diff + use_index
+
+        rsrp_train_data['use'] = use_index
+        rsrp_train_data = rsrp_train_data[rsrp_train_data.use == 1].drop('use', axis=1)
+        print()
+        
+        curr_x_rsrp_train = curr_x_rsrp_train.append(rsrp_train_data.drop(["rsrp"], axis=1))
+        curr_y_rsrp_train += rsrp_train_data.rsrp.values.tolist()
+        
+    return curr_x_rsrp_train, curr_y_rsrp_train
+
+def bayesian_evaluate(**param):
+    curr_x_rsrp_train, curr_y_rsrp_train = generate_train_test(**param)
+    
+    params = {'learning_rate' : 0.0656, 'max_depth' : 15, 'min_child_weight':1, 'num_leaves':10}
+    xgb_model = XGBRegressor(**params)
+    xgb_model.fit(curr_x_rsrp_train, curr_y_rsrp_train)
+    y_rsrp_pred = xgb_model.predict(x_rsrp_test)
+    predictions = [round(value) for value in y_rsrp_pred]
+    mse = metric.mean_squared_error(y_rsrp_test, predictions)
+    rmse = math.sqrt(mse)
+    return -1*rmse
+
+
+# In[64]:
+
+
+bay_params = {}
+for p, s in x_rsrp_train_dict :
+    binary_seq = ''.join(['1'] * len(x_rsrp_train_dict[(p, s)]))
+    max_number = int(binary_seq, 2)
+    bay_params[str(s)] = (0, max_number//(10**10**10))
+
+
+# In[77]:
+
+
+all_x_rsrp = pd.DataFrame({'location_x':x_coord_list, 'location_y':y_coord_list})
+
+class target() :
+    def optimize(self, x, y) :
+        if self.bayes_opt is None or self.bayes_opt.X is None:
+            return 1000
+
+        bo = self.bayes_opt
+        bo.gp.fit(bo.X, bo.Y)
+        mu, sigma = bo.gp.predict(all_x_rsrp.values, return_std=True)
+        return -mean(sigma)
+
+def posterior(bo, x):
+    bo.gp.fit(bo.X, bo.Y)
+    mu, sigma = bo.gp.predict(x, return_std=True)
+    return mu, sigma
+
+def plot_gp(bo, x, curr_x_train, curr_y_train, set_val, model, show_sigma_map=False):
+    background = get_map_image()
+    path = "../results/predicted/rsrp/bayesian_%s_set_%d.png" % (model, set_val)
+    observation_color = [(0, 0, 0)] * len(bo.X)
+    a = visualize(background, bo.X[:, 0].astype(int), bo.X[:, 1].astype(int), 
+                  observation_color, path, adjustment=True)
+    
+    background = get_map_image()
+    path = "../results/predicted/rsrp/real_%s_set_%d.png" % (model, set_val)
+    lon_list = curr_x_train["location_x"].astype('int32')
+    lat_list = curr_x_train["location_y"].astype('int32')
+    rsrp_summary = summary_based_on_location(lat_list, lon_list, curr_y_train)
+    rsrp_summary = summary_dict(rsrp_summary, np.array)
+    normalize_rsrp_mean = matplotlib.colors.Normalize(vmin=min(curr_y_train), vmax=max(curr_y_train))
+    rsrp_mean = summary_dict(rsrp_summary, np.mean)
+    x_list, y_list, rsrp_mean_list = summary_dict_to_list(rsrp_mean)
+    colors_rsrp_mean = [cmap(normalize_rsrp_mean(value))[:3] for value in rsrp_mean_list]
+    colors_rsrp_mean = [[int(x*255) for x in value] for value in colors_rsrp_mean]
+
+    new_backtorgb = get_map_image()
+    new_backtorgb = visualize_cmap(new_backtorgb, x_list, y_list, colors_rsrp_mean, 
+                                   cmap, normalize_rsrp_mean, path)
+
+    mu, sigma = posterior(bo, x)
+    mu_sigma = sigma
+    plot(sigma)
+    plt.show()
+
+    if show_sigma_map :
+        normalize_sigma = matplotlib.colors.Normalize(vmin=min(sigma), vmax=max(sigma))
+        mu_map = [cmap(normalize_sigma(value))[:3] for value in mu_sigma]
+        mu_map = [[int(x*255) for x in value] for value in mu_map]    
+        a=visualize_all_location_heatmap(a, x_coord_view, y_coord_view, mu_map, 
+                                         cmap, normalize_sigma, filename=None,
+                                         size=1, figsize=(20,10), adjustment=False, show=False)
+    
+
+
+# In[119]:
+
+
+acc_dict = {}
+random = 0
+gp_params = {"alpha": 1e-5, "n_restarts_optimizer": 3, 'random_state':random}
+for set_val in demo_config[6] :
+    curr_rsrp_data = rsrp_data[rsrp_data.set == set_val]
+    curr_location = curr_rsrp_data[["location_x","location_y"]]
+    curr_location.drop_duplicates(inplace=True)
+
+    t = target()
+    bo2 = BayesianOptimization(t.optimize, {'x': (min(x_coord_list), max(x_coord_list)), 
+                                            'y': (min(y_coord_list), max(y_coord_list))},
+                               random_state=random, 
+                               verbose=0)
+    t.bayes_opt = bo2
+
+    iterations = len(curr_location)//10
+    bo2.maximize(init_points=2, n_iter=iterations, acq="ei", xi=0.1, **gp_params)
+    
+    temp = curr_rsrp_data.copy()
+    temp2 = pd.DataFrame(columns=temp.columns)
+    for x in bo2.X :
+        distance = lambda d: math.hypot(abs(x[0]-d[0]), abs(x[1]-d[1]))
+        temp["d"] = temp.apply(distance, axis=1)
+        temp2 = temp2.append(temp[temp.d == min(temp.d)])
+
+    object_col = ['PCI', 'Power_37', 'Power_38', 'Power_39', 'Power_40', 'Power_41', 'Power_42', 'set']
+    temp2[object_col] = temp2[object_col].apply(pd.to_numeric)
+    temp2 = temp2[[x for x in temp.columns]]
+    temp3 = curr_rsrp_data[~curr_rsrp_data.index.isin(temp2.index)]
+
+    curr_x_train = temp2.drop(["RSRP", "d", "priority"], axis=1)
+    curr_y_train = np.array(temp2.RSRP)
+    curr_x_test = temp3.drop(["RSRP", "priority"], axis=1)
+    curr_y_test = np.array(temp3.RSRP)
+    print(set_val, iterations, len(curr_rsrp_data), len(curr_x_train), len(curr_x_test))
+
+    params = {'learning_rate' : 0.1, 'max_depth' : 10, 'min_child_weight':1, 'num_leaves':10}
+    lgbm_model = LGBMRegressor(**params)
+    lgbm_model.fit(curr_x_train, curr_y_train)
+    y_rsrp_pred = lgbm_model.predict(curr_x_test)
+    predictions = [round(value) for value in y_rsrp_pred]
+    mae = metric.mean_absolute_error(curr_y_test, predictions)
+    mse = metric.mean_squared_error(curr_y_test, predictions)
+    rmse = math.sqrt(mse)
+    acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), rmse]
+    print("MAE", mae, "MSE", mse, "RMSE", rmse)
+
+    plot_gp(bo2, all_x_rsrp.values, curr_x_train, curr_y_train, set_val, "lgbm")
+
+
+# In[118]:
+
+
+acc_dict = {}
+random = 0
+gp_params = {"alpha": 1e-5, "n_restarts_optimizer": 3, 'random_state':random}
+for set_val in demo_config[6] :
+    curr_rsrp_data = rsrp_data[rsrp_data.set == set_val]
+    curr_location = curr_rsrp_data[["location_x","location_y"]]
+    curr_location.drop_duplicates(inplace=True)
+
+    t = target()
+    bo2 = BayesianOptimization(t.optimize, {'x': (min(x_coord_list), max(x_coord_list)), 
+                                            'y': (min(y_coord_list), max(y_coord_list))},
+                               random_state=random, 
+                               verbose=0)
+    t.bayes_opt = bo2
+
+    iterations = len(curr_location)//10
+    bo2.maximize(init_points=2, n_iter=iterations, acq="ei", xi=0.1, **gp_params)
+    
+    temp = curr_rsrp_data.copy()
+    temp2 = pd.DataFrame(columns=temp.columns)
+    for x in bo2.X :
+        distance = lambda d: math.hypot(abs(x[0]-d[0]), abs(x[1]-d[1]))
+        temp["d"] = temp.apply(distance, axis=1)
+        temp2 = temp2.append(temp[temp.d == min(temp.d)])
+
+    object_col = ['PCI', 'Power_37', 'Power_38', 'Power_39', 'Power_40', 'Power_41', 'Power_42', 'set']
+    temp2[object_col] = temp2[object_col].apply(pd.to_numeric)
+    temp2 = temp2[[x for x in temp.columns]]
+    temp3 = curr_rsrp_data[~curr_rsrp_data.index.isin(temp2.index)]
+
+    curr_x_train = temp2.drop(["RSRP", "d", "priority"], axis=1)
+    curr_y_train = np.array(temp2.RSRP)
+    curr_x_test = temp3.drop(["RSRP", "priority"], axis=1)
+    curr_y_test = np.array(temp3.RSRP)
+    print(set_val, iterations, len(curr_rsrp_data), len(curr_x_train), len(curr_x_test))
+
+    params = {'learning_rate' : 0.1, 'max_depth' : 15, 'min_child_weight':1}
+    xgb_model = XGBRegressor(**params)
+    xgb_model.fit(curr_x_train, curr_y_train)
+    y_rsrp_pred = xgb_model.predict(curr_x_test)
+    predictions = [round(value) for value in y_rsrp_pred]
+    mae = metric.mean_absolute_error(curr_y_test, predictions)
+    mse = metric.mean_squared_error(curr_y_test, predictions)
+    rmse = math.sqrt(mse)
+    acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), rmse]
+    print("RMSE", rmse)
+
+    plot_gp(bo2, all_x_rsrp.values, curr_x_train, curr_y_train, set_val, "xgboost")
+
+
+# In[ ]:
+
+
+temporary = np.array([x for x in acc_dict.values()])
+# random state 0 
+temporary
+
+
+# In[ ]:
+
+
+list(temporary[:, 2])
+
+
 # ## Visualize Prediction 
 
-# In[103]:
+# In[38]:
 
 
 temp = [19, 20]
@@ -305,83 +546,57 @@ all_y_rsrp_lgbm = {(6, p):lgbm_model_dict[(6, p)].predict(all_x_rsrp_dict[(6, p)
 all_y_rsrp_xgboost = {(6, p):xgb_model_dict[(6, p)].predict(all_x_rsrp_dict[(6, p)]) for p in temp}
 
 
-# In[111]:
+# In[110]:
 
 
 all_y_rsrp_dict = {"xgboost":all_y_rsrp_xgboost,
                    "lgbm":all_y_rsrp_lgbm}
 
 
-# In[44]:
+# In[111]:
 
 
-background = old_origin_img[y_cut:318, x_cut:927]
-background = cv2.cvtColor(background, cv2.COLOR_GRAY2RGB)
-x_coord_view = [lon-x_cut for lon in x_coord_list]
-y_coord_view = [lat-y_cut for lat in y_coord_list]
+# background = old_origin_img[y_cut:318, x_cut:927]
+# background = cv2.cvtColor(background, cv2.COLOR_GRAY2RGB)
+# x_coord_view = [lon-x_cut for lon in x_coord_list]
+# y_coord_view = [lat-y_cut for lat in y_coord_list]
+background = get_map_image(black_white=True)
+x_coord_view = [lon for lon in x_coord_list]
+y_coord_view = [lat for lat in y_coord_list]
 
 
-# In[107]:
+# In[112]:
 
 
-p, s = 6, 20
-model_name = "lgbm"
-rsrp_pred = all_y_rsrp_dict[model_name][(p, s)]
-normalize_rsrp = matplotlib.colors.Normalize(vmin=min(rsrp_pred), vmax=max(rsrp_pred))
-rsrp_pred = [cmap(normalize_rsrp(value))[:3] for value in rsrp_pred]
-rsrp_pred = [[int(x*255) for x in value] for value in rsrp_pred]
+def get_map_image(station=True, new_format=True, black_white=False) :
+    new_origin_img = cv2.imread('../image/5F.png') if new_format else cv2.imread('../image/map.png')
     
-a=visualize_all_location_heatmap(background, x_coord_view, y_coord_view, rsrp_pred, 
-                                 cmap, normalize_rsrp, filename=None,
-                                 size=1, figsize=(20,10), adjustment=False)
-
-
-# In[108]:
-
-
-p, s = 6, 20
-model_name = "xgboost"
-rsrp_pred = all_y_rsrp_dict[model_name][(p, s)]
-normalize_rsrp = matplotlib.colors.Normalize(vmin=min(rsrp_pred), vmax=max(rsrp_pred))
-rsrp_pred = [cmap(normalize_rsrp(value))[:3] for value in rsrp_pred]
-rsrp_pred = [[int(x*255) for x in value] for value in rsrp_pred]
+    if black_white :
+        new_origin_img = cv2.imread('../image/5F.png', 0) if new_format else cv2.imread('../image/map.png', 0)
+        _, im_bw = cv2.threshold(new_origin_img, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        new_origin_img = cv2.cvtColor(im_bw, cv2.COLOR_GRAY2BGR)
     
-a=visualize_all_location_heatmap(background, x_coord_view, y_coord_view, rsrp_pred, 
-                                 cmap, normalize_rsrp, filename=None,
-                                 size=1, figsize=(20,10), adjustment=False)
-
-
-# In[115]:
-
-
-p, s = 6, 20
-model_name = "lgbm"
-rsrp_pred = all_y_rsrp_dict[model_name][(p, s)]
-normalize_rsrp = matplotlib.colors.Normalize(vmin=min(rsrp_pred), vmax=max(rsrp_pred))
-rsrp_pred = [cmap(normalize_rsrp(value))[:3] for value in rsrp_pred]
-rsrp_pred = [[int(x*255) for x in value] for value in rsrp_pred]
-    
-a=visualize_all_location_heatmap(background, x_coord_view, y_coord_view, rsrp_pred, 
-                                 cmap, normalize_rsrp, filename=None,
-                                 size=1, figsize=(20,10), adjustment=False)
+    new_backtorgb = cv2.cvtColor(new_origin_img, cv2.COLOR_BGR2RGB)
+    new_backtorgb = draw_base_station(new_backtorgb, new_format)
+    return new_backtorgb
 
 
 # In[114]:
 
 
 p, s = 6, 20
-model_name = "xgboost"
+model_name = "lgbm"
 rsrp_pred = all_y_rsrp_dict[model_name][(p, s)]
 normalize_rsrp = matplotlib.colors.Normalize(vmin=min(rsrp_pred), vmax=max(rsrp_pred))
 rsrp_pred = [cmap(normalize_rsrp(value))[:3] for value in rsrp_pred]
 rsrp_pred = [[int(x*255) for x in value] for value in rsrp_pred]
     
-a=visualize_all_location_heatmap(background, x_coord_view, y_coord_view, rsrp_pred, 
+a=visualize_all_location_heatmap(get_map_image(black_white=True), x_coord_view, y_coord_view, rsrp_pred, 
                                  cmap, normalize_rsrp, filename=None,
-                                 size=1, figsize=(20,10), adjustment=False)
+                                 size=1, figsize=(20,10), adjustment=True)
 
 
-# In[112]:
+# In[115]:
 
 
 p, s = 6, 27
@@ -393,25 +608,10 @@ rsrp_pred = [[int(x*255) for x in value] for value in rsrp_pred]
     
 a=visualize_all_location_heatmap(background, x_coord_view, y_coord_view, rsrp_pred, 
                                  cmap, normalize_rsrp, filename=None,
-                                 size=1, figsize=(20,10), adjustment=False)
+                                 size=1, figsize=(20,10), adjustment=True)
 
 
-# In[113]:
-
-
-p, s = 6, 27
-model_name = "xgboost"
-rsrp_pred = all_y_rsrp_dict[model_name][(p, s)]
-normalize_rsrp = matplotlib.colors.Normalize(vmin=min(rsrp_pred), vmax=max(rsrp_pred))
-rsrp_pred = [cmap(normalize_rsrp(value))[:3] for value in rsrp_pred]
-rsrp_pred = [[int(x*255) for x in value] for value in rsrp_pred]
-    
-a=visualize_all_location_heatmap(background, x_coord_view, y_coord_view, rsrp_pred, 
-                                 cmap, normalize_rsrp, filename=None,
-                                 size=1, figsize=(20,10), adjustment=False)
-
-
-# In[46]:
+# In[120]:
 
 
 for m in all_y_rsrp_dict:
@@ -424,10 +624,10 @@ for m in all_y_rsrp_dict:
             rsrp_pred = [[int(x*255) for x in value] for value in rsrp_pred]
             a=visualize_all_location_heatmap(background, x_coord_view, y_coord_view, rsrp_pred,
                                              cmap, normalize_rsrp, filename=path,
-                                             size=2, figsize=(20,10), adjustment=False)
+                                             size=2, figsize=(20,10), adjustment=True)
 
 
-# In[ ]:
+# In[117]:
 
 
 all_pred_rsrp_dict = {}
