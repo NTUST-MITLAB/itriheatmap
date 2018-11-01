@@ -309,59 +309,6 @@ interference_sheet_csv = "../results/demo_priority_" + str(priority) +"/interfer
 df.to_csv(interference_sheet_csv, index=False)
 
 #All location sheet
-lon_list = result["location_x"].astype('int32')
-lat_list = result["location_y"].astype('int32')
-
-location_summary = summary_location(lat_list, lon_list)
-x_list, y_list = summary_dict_to_list_location(location_summary)
-
-summary_rsrp_rsrq={"x_location" : x_list,
-                   "y_location" : y_list,
-                   "rsrp_mean_list" : rsrp_mean_list,
-                   "rsrp_std_list" : rsrp_std_list,
-                   "rsrq_mean_list" : rsrq_mean_list,
-                   "rsrq_std_list" : rsrq_std_list}
-
-
-df_rsrp_n_rsrq = pd.DataFrame(summary_rsrp_rsrq)
-
-dict_from_snr={"x_location" : x_list2,
-               "y_location" : y_list2,
-               "snr_mean_list" : snr_mean_list,
-               "snr_std_list" : snr_std_list}
-df_snr = pd.DataFrame(dict_from_snr)
-
-x_list, y_list, pci1_list, pci2_list, pci3_list, pci4_list,pci5_list, pci6_list, outer_pci_list, mode_pci_list,interference_list  = summary_dict_to_list_multi_pci(pci_summary)
-
-
-multi_pci_summary = {"x_location" : x_list,
-                   "y_location" : y_list,
-                    "pci_37" : pci1_list,
-                    "pci_38" : pci2_list,
-                    "pci_39" : pci3_list,
-                    "pci_40" : pci4_list,
-                    "pci_41" : pci5_list,
-                    "pci_42" : pci6_list,
-                    "outer_pci" : outer_pci_list,
-                    "mode_pci" : mode_pci_list,
-                    "interference_level" : interference_list}
-df_pci = pd.DataFrame(multi_pci_summary)
-
-x_list, y_list, pci1_list, pci2_list, pci3_list, pci4_list,pci5_list, pci6_list, outer_pci_list, mode_pci_list,interference_list  = summary_dict_to_list_multi_pci(pci_summary)
-
-
-multi_pci_summary = {"x_location" : x_list,
-                   "y_location" : y_list,
-                    "pci_37" : pci1_list,
-                    "pci_38" : pci2_list,
-                    "pci_39" : pci3_list,
-                    "pci_40" : pci4_list,
-                    "pci_41" : pci5_list,
-                    "pci_42" : pci6_list,
-                    "outer_pci" : outer_pci_list,
-                    "mode_pci" : mode_pci_list,
-                    "interference_level" : interference_list}
-df_pci = pd.DataFrame(multi_pci_summary)
 
 res = pd.merge(df_pci, df_rsrp_n_rsrq, on=['x_location','y_location'],how='outer')
 res = pd.merge(res, df_snr, on=['x_location','y_location'],how='outer')
