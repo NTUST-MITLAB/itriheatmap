@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[2]:
+# In[1]:
 
 
 from matplotlib import pyplot as plt
@@ -162,23 +162,22 @@ set_detail_power = {
       {37:6, 38:12, 39:17, 40:10, 41:-5, 42:17},
       {37:14, 38:14, 39:19, 40:15, 41:3, 42:19},
       
-       ###
-       {37:0, 38:0, 39:0, 40:0, 41:0, 42:0},
-      {37:0, 38:0, 39:0, 40:0, 41:0, 42:0},
-       {37:0, 38:0, 39:0, 40:0, 41:0, 42:0},
-       {37:0, 38:0, 39:0, 40:0, 41:0, 42:0},
-       {37:0, 38:0, 39:0, 40:0, 41:0, 42:0},
-       {37:0, 38:0, 39:0, 40:0, 41:0, 42:0},
-       {37:0, 38:0, 39:0, 40:0, 41:0, 42:0},
-       {37:0, 38:0, 39:0, 40:0, 41:0, 42:0},
-       {37:0, 38:0, 39:0, 40:0, 41:0, 42:0},
-       {37:0, 38:0, 39:0, 40:0, 41:0, 42:0},
-       {37:0, 38:0, 39:0, 40:0, 41:0, 42:0},
-       {37:0, 38:0, 39:0, 40:0, 41:0, 42:0},
-       {37:0, 38:0, 39:0, 40:0, 41:0, 42:0},
-       {37:0, 38:0, 39:0, 40:0, 41:0, 42:0},
-       {37:0, 38:0, 39:0, 40:0, 41:0, 42:0},
-       {37:0, 38:0, 39:0, 40:0, 41:0, 42:0},
+       {37:5, 38:2, 39:-3, 40:-2, 41:19, 42:8},
+      {37:14, 38:-3, 39:7, 40:4, 41:14, 42:14},
+       {37:-5, 38:16, 39:-5, 40:-5, 41:14, 42:9},
+       {37:18, 38:18, 39:4, 40:-4, 41:16, 42:14},
+       {37:7, 38:3, 39:18, 40:0, 41:13, 42:18},
+       {37:9, 38:-4, 39:10, 40:0, 41:18, 42:18},
+       {37:-5, 38:13, 39:14, 40:0, 41:16, 42:16},
+       {37:11, 38:13, 39:8, 40:7, 41:10, 42:9},
+       {37:-1, 38:-3, 39:1, 40:12, 41:20, 42:19},
+       {37:8, 38:4, 39:-2, 40:13, 41:15, 42:20},
+       {37:0, 38:20, 39:-2, 40:13, 41:15, 42:20},
+       {37:17, 38:16, 39:-3, 40:9, 41:20, 42:10},
+       {37:-5, 38:2, 39:19, 40:16, 41:10, 42:12},
+       {37:13, 38:7, 39:10, 40:19, 41:16, 42:12},
+       {37:-3, 38:13, 39:14, 40:9, 41:15, 42:10},
+       {37:13, 38:15, 39:11, 40:11, 41:16, 42:11},
       ###
       {37:19, 38:19, 39:19, 40:19, 41:19, 42:19}]
 }
@@ -263,7 +262,7 @@ def collect_df(paths) :
 
 def get_source(priority, set_value) :
      return '../data/demo-priority' + str(priority) + '/set' + str(set_value) + '/*'
-    
+
 def extract_data_setting(path) :
     set_df = pd.DataFrame()
     for level_1_filename in glob.glob(path) :
@@ -284,24 +283,25 @@ def extract_data_setting(path) :
                     if "nmf" in real_filename :
                         nmf_file = file
 
-        if mrk_file is not None and nmf_file is not None : 
-            try :
-                df = extract_feature(mrk_file, nmf_file)
-                set_df = pd.concat([set_df, df])
-            except :
-                traceback.print_exc()
-        else :
-            print(level_1_filename, "mrk found", mrk_file is not None, "nmf found", nmf_file is not None)
+            if mrk_file is not None and nmf_file is not None : 
+                try :
+                    df = extract_feature(mrk_file, nmf_file)
+                    set_df = pd.concat([set_df, df])
+                except :
+                    traceback.print_exc()
+            else :
+                print(level_1_filename, "mrk found", mrk_file is not None, "nmf found", nmf_file is not None)
 
     # reorder the columns
     return set_df[["location_x", "location_y", "PCI", "RSRP", "RSRQ", "SNR", "timestamp", "filename"]]
-
+    
 def extract_data_directly(config, feature=True, pure=False) :
     result = pd.DataFrame()
     for priority in config :
         for set_value in config[priority] :
             try :
                 set_df = extract_data_setting(get_source(priority, set_value))
+                
                 if feature :
                     if not pure :
                         set_df = add_features_summary(set_df, priority, set_value)
@@ -320,7 +320,7 @@ def extract_data_directly(config, feature=True, pure=False) :
         result = result.drop(["timestamp", "filename"], axis=1)
         result["PCI"] = result["PCI"].astype('int32')
     return result
-
+    
 def get_filenames(path) :
     mrk_filenames = []
     nmf_filenames = []
@@ -512,7 +512,7 @@ def reweight_dict(data_dict, func) :
         for lon in data_dict[lat] :
             summary[lat][lon] = {}
             for pci in data_dict[lat][lon] :
-                summary[lat][lon][pci] = int(math.log10(data_dict[lat][lon][pci]))
+                summary[lat][lon][pci] = int(math.log(data_dict[lat][lon][pci]))
             
     return summary
 
@@ -531,6 +531,46 @@ def filtering_dict(data_dict, func) :
             summary[lat][lon][pci] = max_length
             
     return summary
+
+def count_interference(data_dict) :
+    pci_interference_list=[0,0,0,0,0,0,0,0]
+    for lat in data_dict :
+        for lon in data_dict[lat] :
+            pci_num = 0
+            for pci in data_dict[lat][lon] :
+                pci_num = pci_num + 1
+            if pci_num <= 6 :
+                pci_interference_list[pci_num] = pci_interference_list[pci_num] + 1
+            else :
+                pci_interference_list[7] = pci_interference_list[7] + 1
+                
+    inter_count = 0
+    for i in range (2,7) :
+        inter_count = inter_count + pci_interference_list[i]    
+    pci_interference_list.append(inter_count)
+
+    return pci_interference_list
+
+def summary_location(lat_list, lon_list) :
+    summary = {}
+    for lat, lon in zip(lat_list, lon_list) :
+        
+        if lat not in summary :
+            summary[lat] = []
+            
+        if lon not in summary[lat]:
+            summary[lat].append(lon)
+            
+    return summary
+
+def summary_dict_to_list_location(data_dict) :
+    x = []
+    y = []
+    for lat in data_dict :
+        for lon in data_dict[lat] :
+            x.append(lon)
+            y.append(lat)
+    return np.array(x), np.array(y)
 
 def summary_dict_to_list(data_dict) :
     x = []
@@ -561,13 +601,81 @@ def summary_dict_to_list_pci(data_dict) :
                     xx.append(val)
     return np.array(x), np.array(y), np.array(z), np.array(xx)
 
+def summary_dict_to_list_multi_pci(data_dict) :
+    x = []
+    y = []
+    p1 = []
+    p2 = []
+    p3 = []
+    p4 = []
+    p5 = []
+    p6 = []
+    p_out = []
+    m_pci_list = []
+    total_pci_num = []
+    interference_level_list = []
+    
+    for lat in data_dict :
+        for lon in data_dict[lat] :
+            interference_level = 0
+            outer_pci_exist = False
+            outer_pci = 0
+            mode_pci = 0
+            mode_pci_num = 0
+            other_pci_exist = False
+            pci_data=[0,0,0,0,0,0,0]
+            sum_p = 0
+            
+            for pci in data_dict[lat][lon] :
+                for pci_index in range(37,43) :
+                    if pci == pci_index:
+                        pci_data[pci_index-37] = data_dict[lat][lon][pci]
+                        
+                if pci not in whitelist_PCI and outer_pci_exist == False:
+                    pci_data[6] = data_dict[lat][lon][pci]
+                    outer_pci_exist = True
+                elif pci not in whitelist_PCI and outer_pci_exist :
+                    pci_data[6] = pci_data[6] + data_dict[lat][lon][pci]
+                    
+                if data_dict[lat][lon][pci] > mode_pci_num :
+                        mode_pci = pci
+                        mode_pci_num = data_dict[lat][lon][pci]
+                        
+            for i in range(0,7) :
+                if pci_data[i] != 0 :
+                    interference_level = interference_level + 1
+                sum_p = sum_p+pci_data[i]
+            p1.append(pci_data[0])
+            p2.append(pci_data[1])
+            p3.append(pci_data[2])
+            p4.append(pci_data[3])
+            p5.append(pci_data[4])
+            p6.append(pci_data[5])
+            p_out.append(pci_data[6])
+            x.append(lon)
+            y.append(lat)     
+            m_pci_list.append(mode_pci)
+            total_pci_num.append(sum_p)
+            interference_level_list.append(interference_level)
+                
+    return np.array(x), np.array(y), np.array(p1), np.array(p2),     np.array(p3), np.array(p4), np.array(p5), np.array(p6), np.array(p_out),     np.array(m_pci_list), np.array(total_pci_num), np.array(interference_level_list)
+
 # transform lat and long from NEMO background to new background
 # we need to crop old background from (50, 100) then  
 # old background shape : (218, 877)
 # new background shape : (234, 945)
-def transform_lat_lng(lat, lon) :
-    new_lat = (lat-100) * (945/877)
-    new_lng = (lon-50) * (234/218)
+# scale up background shape : (2704,671)
+def transform_lat_lng(lat, lon, scale = False) :
+    #new_lat = (lat-100) * (945/877)
+    #new_lng = (lon-50) * (234/218)
+    #for scale up
+    if scale:
+        new_lat = (lat-100) * (9450/877)
+        new_lng = (lon-50) * (2340/218)
+    else:
+        new_lat = (lat-100) * (945/877)
+        new_lng = (lon-50) * (234/218)   
+    
 
     return int(new_lat), int(new_lng)
 
@@ -640,31 +748,45 @@ def add_features_summary(df, priority, set_value) :
     df = add_angle_map(df)
     return df
 
-def draw_base_station(source, adjustment=True) :
+def draw_base_station(source, adjustment=True, scale_up = False) :
     for bs in bs_location :
         x, y = bs_location[bs]
         color=bs_color[bs]
         
-        
         if adjustment :
             y, x = transform_lat_lng(y, x)
         
-        d = 10
+        d = 8
         top_left = (x-d, y+d)
         bottom_right = (x+d, y-d)
         source = cv2.rectangle(source, top_left, bottom_right, color, -1)
-        source = cv2.rectangle(source, top_left, bottom_right, (0,0,0), 2)
+        source = cv2.rectangle(source, top_left, bottom_right, (0,0,0), 1)
     return source
 
-def get_map_image(station=True, new_format=True) :
-    new_origin_img = cv2.imread('../image/5F.png', 0) if new_format else cv2.imread('../image/map.png', 0)
+def get_map_image(station=True, new_format=True, scale_up = False) :
+    if scale_up :
+        new_origin_img = cv2.imread('../image/5F_big.png',0)
+    else :
+        new_origin_img = cv2.imread('../image/5F.png',0) if new_format else cv2.imread('../image/map.png',0)
     new_backtorgb = cv2.cvtColor(new_origin_img, cv2.COLOR_GRAY2RGB)
-    new_backtorgb = draw_base_station(new_backtorgb, new_format)
+    
+    #new_backtorgb = draw_base_station(new_backtorgb, new_format)
+    return new_backtorgb
+
+def get_map_image2(station=True, new_format=True) :
+    #new_origin_img = cv2.imread('../image/5F.png',0) if new_format else cv2.imread('../image/map.png',0)
+    #new_backtorgb = cv2.cvtColor(new_origin_img, cv2.COLOR_GRAY2RGB)
+    
+    new_origin_img = cv2.imread('../image/5F.png',1) if new_format else cv2.imread('../image/map.png',1)
+    b,g,r = cv2.split(new_origin_img)
+    new_backtorgb = cv2.merge([r,g,b])
+    #new_backtorgb = draw_base_station(new_backtorgb, new_format)
     return new_backtorgb
 
 
 
 def visualize(source, x_list, y_list, color, filename=None, size=4, figsize=(18,5), adjustment=True) :
+    source = draw_base_station(source, adjustment=True, scale_up = False)
     for lon, lat, c in zip(x_list, y_list, color):
         if adjustment :
             lat, lon = transform_lat_lng(lat, lon)
@@ -680,7 +802,8 @@ def visualize(source, x_list, y_list, color, filename=None, size=4, figsize=(18,
         
     return source
 
-def visualize_pci(source, x_list, y_list, weight_list, color, filename=None, size=4, figsize=(18,5), adjustment=True) :
+def visualize_interference(source, x_list, y_list, weight_list, color, filename=None, size=4, figsize=(18,5), adjustment=True) :
+    source = draw_base_station(source, new_format=True)
     temp_lat, temp_lon = 0,0
     temp_c = (0, 0, 0)
     temp_w = 0
@@ -714,27 +837,20 @@ def visualize_pci(source, x_list, y_list, weight_list, color, filename=None, siz
         
     return source
 
-def visualize2(source, x_list, y_list, color, filename=None, size=4, figsize=(18,5), adjustment=True) :
-    temp_lat, temp_lon = 0,0
-    temp_c = (0, 0, 0)
-  
-    for lon, lat, c in zip(x_list, y_list, color):
-        i=1
+
+def visualize_interference_level(source, x_list, y_list, weight_list, filename=None, size=0.5,
+                                 figsize=(18,5), adjustment=True) :
+    #d = 4.64
+    #dx,dy = transform_lat_lng(d, d)
+    for lon, lat, w in zip(x_list, y_list, weight_list):
+        
         if adjustment :
             lat, lon = transform_lat_lng(lat, lon)
-                
-            if lat != temp_lat or lon != temp_lon :
-                source = cv2.circle(source, (lon, lat), size, c, -1)
-            elif lat == temp_lat and lon == temp_lon and c != temp_c :
-                source = cv2.circle(source, (lon, lat), size+i*4, temp_c, -1)
-                source = cv2.circle(source, (lon, lat), size+i*2, c, -1)
-                i=i+2
             
-            temp_lat, temp_lon = lat, lon
-            temp_c = c
+            source = cv2.putText(source, str(w), (lon, lat), cv2.FONT_HERSHEY_SIMPLEX,
+                                     size, (0,0,0), 1, cv2.LINE_AA)
+                
             #source = cv2.circle(source, (lon, lat), size, c, -1)
-        
-        
         
     fig = plt.figure(figsize=figsize)
     plt.imshow(source, cmap = 'gray', interpolation = 'bicubic')
@@ -745,6 +861,119 @@ def visualize2(source, x_list, y_list, color, filename=None, size=4, figsize=(18
         fig.savefig(filename)
         
     return source
+
+def visualize_mode(source, x_list, y_list, p1_list, p2_list, p3_list, p4_list, 
+                   p5_list, p6_list, p_o, p_sum,filename=None, size=0.1,
+                   figsize=(18,5), adjustment=True,dpi = 1) :
+    haha=0
+    for lon, lat, p1, p2, p3, p4, p5, p6 ,p0, total_p in zip(x_list, y_list, p1_list,
+                                                             p2_list, p3_list, p4_list,
+                                                             p5_list, p6_list, p_o, p_sum):
+        c = (0,0,0)
+        
+        if adjustment :
+            lat, lon = transform_lat_lng(lat, lon, scale = True)
+            a = [p1,p2,p3,p4,p5,p6,p0]
+            a=sorted(a)
+            #for i in range(37,43) :
+                
+            if a[6] == p1:
+                c = pci_color_dict[37]
+            elif a[6] == p2:
+                c = pci_color_dict[38]
+            elif a[6] == p3:
+                c = pci_color_dict[39]
+            elif a[6] == p4:
+                c = pci_color_dict[40]
+            elif a[6] == p5:
+                c = pci_color_dict[41]
+            elif a[6] == p6:
+                c = pci_color_dict[42]
+            elif a[6] == p0:
+                c = (0,0,0)
+            ratio = round(a[6]/total_p,2)
+            if ratio < 1 :
+                haha = haha+1
+                source = cv2.putText(source, str(ratio),
+                                     (lon, lat), cv2.FONT_HERSHEY_SIMPLEX,
+                                     size, c, 8, cv2.LINE_AA)
+                #source = cv2.circle(source, (lon, lat), size*6, c, -1)
+            
+            #source = cv2.circle(source, (lon, lat), size, c, -1)
+        
+       
+    
+    
+    fig = plt.figure(figsize = figsize,dpi = dpi)
+    plt.imshow(source, cmap = 'gray', interpolation='bilinear')
+    #interpolation = 'bicubic',
+    plt.xticks([]), plt.yticks([])  # to hide tick values on X and Y axis
+    
+    #plt.subplots_adjust(left=0.09,right=1,wspace=0.25,hspace=0.25,bottom=0.13,top=0.91)
+    
+    #if filename != None :
+    #    fig.savefig(filename)
+    plt.savefig(filename)
+    plt.show()
+    
+    
+        
+    return source
+
+def visualize_interference_rect(source, x_list, y_list, p1_list, p2_list, p3_list,
+                                p4_list, p5_list, p6_list, other_p_list, p_sum, 
+                                filename=None, d_reg=10, figsize=(18,5), adjustment=True,dpi = 1) :
+    
+    for lon, lat, p1, p2, p3,p4, p5, p6, p_other, total_p in zip(x_list, y_list, p1_list,
+                                                                 p2_list, p3_list,p4_list,
+                                                                 p5_list, p6_list, other_p_list,
+                                                                 p_sum):
+        
+        if adjustment :
+            latx, lonx = transform_lat_lng(lat, lon, scale = True)
+            c = (0,0,0)
+            a = [p1, p2, p3, p4, p5, p6, p_other]
+            
+            d = d_reg
+            x_left = lonx-d_reg
+            x_right = lonx+d_reg
+            y_temp = latx+d_reg
+            
+            #sum_at_this_point = sum(a)
+            
+           
+            for i in range(0,7) :
+                if a[i] > 0 and a[i] == p_other:
+                    c = (255,255,255)
+                elif a[i] > 0 :
+                    c = pci_color_dict[i+37]
+                
+                #else :
+                #    print(str(lon)+","+str(lat)+" / "+str(c)+"  /  "+str(a[i]))
+                
+                if a[i] > 0 :
+                    ratio_d = a[i]/total_p
+                
+                    d = d_reg*2*ratio_d
+                    
+                    top_left = (x_left, y_temp)
+                    bottom_right = (x_right, np.round(y_temp-d).astype("int"))
+                    y_temp = np.round(y_temp-d).astype("int")
+                    if ratio_d < 1:
+                        source = cv2.rectangle(source, top_left, bottom_right, c, -1)
+                        
+                          
+    fig = plt.figure(figsize=figsize,dpi = dpi)
+    plt.imshow(source, cmap = 'gray', interpolation = 'bicubic')
+    plt.xticks([]), plt.yticks([])  # to hide tick values on X and Y axis
+    plt.show()
+    
+    if filename != None :
+        fig.savefig(filename)
+        #fig.savefig(filename,dpi = 1500)
+        
+    return source
+    
 
 def visualize_pci_heatmap(background, x_coord_list, y_coord_list, pci_pred, filename, size=3) :
     background = np.array(background)
@@ -1044,10 +1273,4 @@ def load_from_pickle(filename) :
     with open("db/"+filename+".pkl", 'rb') as f:
         datastore = pickle.load(f)
     return datastore
-
-
-# In[2]:
-
-
-
 
