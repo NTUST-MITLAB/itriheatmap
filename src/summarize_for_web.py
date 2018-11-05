@@ -15,15 +15,15 @@ from helper import *
 #len(result.groupby(result.filename).size())
 
 
-# In[8]:
+# In[9]:
 
 
 #Check the priority and set first
 #And modify whitelist in helper
 #lock_pci and pci_locker are for single pci map
 
-priority = 6
-set_value = 2
+priority = int(input("Enter a number: "))
+set_value = int(input("Enter a number: "))
 
 #Set lock_pci = True, if you want to show the map for one specific pci
 #And the pci_locker is which pci you want 
@@ -51,7 +51,9 @@ def get_output_image(prefix="") :
 
     
 #if you need the feature in csv, set feature = True(it takes more time)
-result = extract_data_directly(config={priority : [set_value]}, feature=False, pure=False)
+#result = extract_data_directly(config={priority : [set_value]}, feature=False, pure=False)
+result = pd.read_csv(output_csv)
+
 if set_value in [2, 3, 4, 5, 14, 15, 33]  and priority == 6  :
     total_point = len(result.groupby(["location_x", "location_y"]).agg(['count']))
     print("total point : ", total_point)
