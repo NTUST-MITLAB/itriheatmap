@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[2]:
+# In[5]:
 
 
 import matplotlib
@@ -9,27 +9,29 @@ import loadnotebook
 from helper import * 
 
 
-# In[4]:
+# In[6]:
 
 
 #len(result.groupby(result.filename).size())
 
 
-# In[5]:
+# In[8]:
 
 
 #Check the priority and set first
 #And modify whitelist in helper
 #lock_pci and pci_locker are for single pci map
 
-priority = 6
-set_value = 1
+priority = int(input("Enter a number: "))
+set_value = int(input("Enter a number: "))
+
+
 
 #Set lock_pci = True, if you want to show the map for one specific pci
 #And the pci_locker is which pci you want 
 
 lock_pci = False
-pci_locker = 42
+pci_locker = 13
 
 #to check is there a missing point we need to regather
 
@@ -309,6 +311,29 @@ interference_sheet_csv = "../results/demo_priority_" + str(priority) +"/interfer
 df.to_csv(interference_sheet_csv, index=False)
 
 #All location sheet
+
+lon_list = result["location_x"].astype('int32')
+lat_list = result["location_y"].astype('int32')
+
+location_summary = summary_location(lat_list, lon_list)
+x_list, y_list = summary_dict_to_list_location(location_summary)
+
+summary_rsrp_rsrq={"x_location" : x_list,
+                   "y_location" : y_list,
+                   "rsrp_mean_list" : rsrp_mean_list,
+                   "rsrp_std_list" : rsrp_std_list,
+                   "rsrq_mean_list" : rsrq_mean_list,
+                   "rsrq_std_list" : rsrq_std_list}
+
+
+df_rsrp_n_rsrq = pd.DataFrame(summary_rsrp_rsrq)
+
+dict_from_snr={"x_location" : x_list2,
+               "y_location" : y_list2,
+               "snr_mean_list" : snr_mean_list,
+               "snr_std_list" : snr_std_list}
+df_snr = pd.DataFrame(dict_from_snr)
+
 
 res = pd.merge(df_pci, df_rsrp_n_rsrq, on=['x_location','y_location'],how='outer')
 res = pd.merge(res, df_snr, on=['x_location','y_location'],how='outer')
