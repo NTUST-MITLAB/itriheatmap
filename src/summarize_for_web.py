@@ -15,15 +15,15 @@ from helper import *
 #len(result.groupby(result.filename).size())
 
 
-# In[9]:
+# In[10]:
 
 
 #Check the priority and set first
 #And modify whitelist in helper
 #lock_pci and pci_locker are for single pci map
 
-priority = int(input("Enter a number: "))
-set_value = int(input("Enter a number: "))
+priority = int(input("Enter priority number: "))
+set_value = int(input("Enter set number: "))
 
 #Set lock_pci = True, if you want to show the map for one specific pci
 #And the pci_locker is which pci you want 
