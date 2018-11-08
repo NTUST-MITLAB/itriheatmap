@@ -6,17 +6,20 @@
 
 from matplotlib import pyplot as plt
 from matplotlib.patches import Circle
+from datetime import timedelta
+from numba import jit
 
 import pickle
 import json
 import pandas as pd
 import numpy as np
 import glob
-import codecs
-import cv2
 import traceback
 import matplotlib
 import math
+import codecs
+import cv2
+
 
 beam_list = [0, 32, 64, 96, 128]
 
@@ -249,6 +252,7 @@ pci_point=0
 
 cmap = matplotlib.cm.get_cmap('jet')
 
+@jit
 def collect_df(paths) :
     result = pd.DataFrame()
     for path in paths :
@@ -260,9 +264,10 @@ def collect_df(paths) :
             result = pd.concat([result, df])
     return result 
 
+@jit
 def get_source(priority, set_value) :
      return '../data/demo-priority' + str(priority) + '/set' + str(set_value) + '/*'
-
+    
 def extract_data_setting(path) :
     set_df = pd.DataFrame()
     for level_1_filename in glob.glob(path) :
@@ -320,7 +325,8 @@ def extract_data_directly(config, feature=True, pure=False) :
         result = result.drop(["timestamp", "filename"], axis=1)
         result["PCI"] = result["PCI"].astype('int32')
     return result
-    
+
+@jit
 def get_filenames(path) :
     mrk_filenames = []
     nmf_filenames = []
@@ -336,6 +342,7 @@ def get_filenames(path) :
     
     return mrk_filenames, nmf_filenames
 
+@jit
 def extract_mrk(f) :
     file = codecs.open(f, 'r', 'utf-8')
     
@@ -418,6 +425,7 @@ def extract_nmf(f) :
     return df
 
 # extract feature from both mrk and nmf file
+@jit
 def extract_feature(mrk, nmf) :
     lat, lon = extract_mrk(mrk)
     
@@ -431,6 +439,7 @@ def extract_feature(mrk, nmf) :
     df['filename'] = mrk.split("/")[-1]
     return df
 
+@jit
 def summary_based_on_location(lat_list, lon_list, data_list) :
     summary = {}
     for lat, lon, val in zip(lat_list, lon_list, data_list) :
@@ -447,6 +456,45 @@ def summary_based_on_location(lat_list, lon_list, data_list) :
             summary_lat[lon].append(val)
     return summary
 
+@jit
+def summary_based_on_location(lat_list, lon_list, data_list) :
+    summary = {}
+    for lat, lon, val in zip(lat_list, lon_list, data_list) :
+        if math.isnan(val) :
+            continue
+         
+        if lat not in summary :
+            summary[lat] = {}
+
+        summary_lat = summary[lat]
+        if lon not in summary_lat :
+            summary_lat[lon] = [val]
+        else :
+            summary_lat[lon].append(val)
+    return summary
+
+@jit
+def summary_based_on_location_by_time(lat_list, lon_list, time_list,  data_list) :
+    summary = {}
+    for lat, lon, time, val in zip(lat_list, lon_list, time_list, data_list) :
+        if math.isnan(val) :
+            continue
+         
+        if lat not in summary :
+            summary[lat] = {}
+        
+        if lon not in summary[lat]:
+            summary[lat][lon]={}
+            
+        if time not in summary[lat][lon]:
+            summary[lat][lon][time]={}
+            
+        if val not in summary[lat][lon][time]:
+            summary[lat][lon][time]=[val]
+        
+    return summary
+
+@jit
 def summary_based_on_location_for_pci(lat_list, lon_list,pci_list) :
     summary = {}
     for lat, lon, pci in zip(lat_list, lon_list, pci_list) :
@@ -466,6 +514,7 @@ def summary_based_on_location_for_pci(lat_list, lon_list,pci_list) :
         
     return summary
 
+@jit
 def summary_based_on_location2(lat_list, lon_list,pci_list, data_list) :
     summary = {}
     for lat, lon, pci, val in zip(lat_list, lon_list, pci_list, data_list) :
@@ -484,6 +533,7 @@ def summary_based_on_location2(lat_list, lon_list,pci_list, data_list) :
             summary[lat][lon][pci].append(val)
     return summary
 
+@jit
 def summary_dict(data_dict, func) :
     summary = {}
     for lat in data_dict :
@@ -493,7 +543,8 @@ def summary_dict(data_dict, func) :
             summary[lat][lon] = func(val)
     return summary
 
-#put pci inside 
+#put pci inside
+@jit
 def summary_dict2(data_dict, func) :
     summary = {}
     for lat in data_dict :
@@ -505,6 +556,7 @@ def summary_dict2(data_dict, func) :
                 summary[lat][lon][pci] = func(val)
     return summary
 
+@jit
 def reweight_dict(data_dict, func) :
     summary = {}
     for lat in data_dict :
@@ -516,6 +568,7 @@ def reweight_dict(data_dict, func) :
             
     return summary
 
+@jit
 def filtering_dict(data_dict, func) :
     summary = {}
     for lat in data_dict :
@@ -532,6 +585,7 @@ def filtering_dict(data_dict, func) :
             
     return summary
 
+@jit
 def count_interference(data_dict) :
     pci_interference_list=[0,0,0,0,0,0,0,0]
     for lat in data_dict :
@@ -551,6 +605,7 @@ def count_interference(data_dict) :
 
     return pci_interference_list
 
+@jit
 def summary_location(lat_list, lon_list) :
     summary = {}
     for lat, lon in zip(lat_list, lon_list) :
@@ -563,6 +618,7 @@ def summary_location(lat_list, lon_list) :
             
     return summary
 
+@jit
 def summary_dict_to_list_location(data_dict) :
     x = []
     y = []
@@ -572,6 +628,7 @@ def summary_dict_to_list_location(data_dict) :
             y.append(lat)
     return np.array(x), np.array(y)
 
+@jit
 def summary_dict_to_list(data_dict) :
     x = []
     y = []
@@ -585,6 +642,7 @@ def summary_dict_to_list(data_dict) :
                 z.append(val)
     return np.array(x), np.array(y), np.array(z)
 
+@jit
 def summary_dict_to_list_pci(data_dict) :
     x = []
     y = []
@@ -601,6 +659,26 @@ def summary_dict_to_list_pci(data_dict) :
                     xx.append(val)
     return np.array(x), np.array(y), np.array(z), np.array(xx)
 
+
+
+@jit
+def summary_dict_to_list_time(data_dict) :
+    x = []
+    y = []
+    z = []
+    xx = []
+    for lat in data_dict :
+        for lon in data_dict[lat] :
+            for time in data_dict[lat][lon] :
+                #for val in data_dict[lat][lon][pci] :
+                    val = data_dict[lat][lon][time]
+                    x.append(lon)
+                    y.append(lat)
+                    z.append(time)
+                    xx.append(val)
+    return np.array(x), np.array(y), np.array(z), np.array(xx)
+
+@jit
 def summary_dict_to_list_multi_pci(data_dict) :
     x = []
     y = []
@@ -665,11 +743,12 @@ def summary_dict_to_list_multi_pci(data_dict) :
 # old background shape : (218, 877)
 # new background shape : (234, 945)
 # scale up background shape : (2704,671)
-def transform_lat_lng(lat, lon, scale = False) :
+@jit
+def transform_lat_lng(lat, lon, scale_up = False) :
     #new_lat = (lat-100) * (945/877)
     #new_lng = (lon-50) * (234/218)
     #for scale up
-    if scale:
+    if scale_up:
         new_lat = (lat-100) * (9450/877)
         new_lng = (lon-50) * (2340/218)
     else:
@@ -679,6 +758,7 @@ def transform_lat_lng(lat, lon, scale = False) :
 
     return int(new_lat), int(new_lng)
 
+@jit
 def add_power(df, priority, set_value) :
     if priority not in set_detail_power or set_value > len(set_detail_power[priority]) :
         print("power configuration for this set haven't been listed")
@@ -688,7 +768,8 @@ def add_power(df, priority, set_value) :
     for p in power_val :
         df["Power_" + str(p)] = power_val[p]
     return df
-    
+
+@jit
 def add_beam(df, priority, set_value) :
     if priority not in set_detail_beam or set_value > len(set_detail_beam[priority]) :
         print("beam configuration for this set haven't been listed")
@@ -703,18 +784,21 @@ def add_beam(df, priority, set_value) :
             df[name] = 1 if b in beam_map_val else 0
     return df
 
+@jit
 def add_distance(df) :
     for bs in bs_location :
         x, y = bs_location[bs]
         distance = lambda d: math.hypot(abs(x-d[0]), abs(y-d[1]))
         df["Distance_" + str(bs)] = df.apply(distance, axis=1)
     return df
-    
+  
+@jit    
 def find_angle(diff_x, diff_y) :
     radian = math.atan2(diff_x, diff_y)
     degree = math.degrees(radian)
     return degree
 
+@jit
 def add_angle(df) :
     for bs in bs_location :
         x, y = bs_location[bs]
@@ -722,11 +806,13 @@ def add_angle(df) :
         df["Angle_" + str(bs)] = df.apply(angle_func, axis=1)
     return df
 
+@jit
 def map_angle(degree) :
     for a in angle_dict :
         if a >= degree :
             return angle_dict[a]
 
+@jit        
 def add_angle_map(df) :
     for bs in bs_location :
         x, y = bs_location[bs]
@@ -734,13 +820,15 @@ def add_angle_map(df) :
         df["Angle_" + str(bs)] = df.apply(angle_func, axis=1)
     return df
 
+@jit
 def add_features(df, priority, set_value) :
     df = add_power(df, priority, set_value)
     df = add_beam(df, priority, set_value)
     df = add_distance(df)
     df = add_angle(df)
     return df
-    
+
+@jit
 def add_features_summary(df, priority, set_value) :
     df = add_power(df, priority, set_value)
     df = add_beam(df, priority, set_value)
@@ -748,21 +836,41 @@ def add_features_summary(df, priority, set_value) :
     df = add_angle_map(df)
     return df
 
+@jit
 def draw_base_station(source, adjustment=True, scale_up = False) :
+    if scale_up:
+        size = 5
+        d = 90
+        pen_t = 8
+        pen_tt = 10
+    else:
+        size = 0.5
+        d = 9
+        pen_t = 1
+        pen_tt = 1
     for bs in bs_location :
         x, y = bs_location[bs]
+        b_x,b_y=40,104
         color=bs_color[bs]
-        
+        r,g,b = color
+        r=r+10
+        g=g+10
+        b=b+10
+        color=(r,g,b)
         if adjustment :
-            y, x = transform_lat_lng(y, x)
+            y, x = transform_lat_lng(y, x, scale_up = scale_up)
+            b_y, b_x = transform_lat_lng(b_y, b_x, scale_up = scale_up)
         
-        d = 8
         top_left = (x-d, y+d)
         bottom_right = (x+d, y-d)
-        source = cv2.rectangle(source, top_left, bottom_right, color, -1)
-        source = cv2.rectangle(source, top_left, bottom_right, (0,0,0), 1)
+        #source = cv2.rectangle(source, top_left, bottom_right, color, -1)
+        source = cv2.putText(source, str(bs),
+                             (x+b_x, y+b_y), cv2.FONT_HERSHEY_SIMPLEX,
+                             size, (0,0,0), pen_t, cv2.LINE_AA)
+        source = cv2.rectangle(source, top_left, bottom_right, (0,0,0), pen_tt)
     return source
 
+@jit
 def get_map_image(station=True, new_format=True, scale_up = False) :
     if scale_up :
         new_origin_img = cv2.imread('../image/5F_big.png',0)
@@ -773,23 +881,14 @@ def get_map_image(station=True, new_format=True, scale_up = False) :
     #new_backtorgb = draw_base_station(new_backtorgb, new_format)
     return new_backtorgb
 
-def get_map_image2(station=True, new_format=True) :
-    #new_origin_img = cv2.imread('../image/5F.png',0) if new_format else cv2.imread('../image/map.png',0)
-    #new_backtorgb = cv2.cvtColor(new_origin_img, cv2.COLOR_GRAY2RGB)
-    
-    new_origin_img = cv2.imread('../image/5F.png',1) if new_format else cv2.imread('../image/map.png',1)
-    b,g,r = cv2.split(new_origin_img)
-    new_backtorgb = cv2.merge([r,g,b])
-    #new_backtorgb = draw_base_station(new_backtorgb, new_format)
-    return new_backtorgb
-
-
-
-def visualize(source, x_list, y_list, color, filename=None, size=4, figsize=(18,5), adjustment=True) :
-    source = draw_base_station(source, adjustment=True, scale_up = False)
-    for lon, lat, c in zip(x_list, y_list, color):
+def visualize(source, x_list, y_list, pci_list, filename=None, size=4, figsize=(18,5), adjustment=True) :
+    if bs:
+        source = draw_base_station(source, adjustment, scale_up = scale_up)
+    c = (0,0,0)
+    for lon, lat, pci in zip(x_list, y_list, pci_list):
         if adjustment :
-            lat, lon = transform_lat_lng(lat, lon)
+            lat, lon = transform_lat_lng(lat, lon, scale_up = scale_up)
+            c = pci_color_dict[pci] if pci in pci_color_dict else (255,255,255)
             source = cv2.circle(source, (lon, lat), size, c, -1)
         
     fig = plt.figure(figsize=figsize)
@@ -802,56 +901,34 @@ def visualize(source, x_list, y_list, color, filename=None, size=4, figsize=(18,
         
     return source
 
-def visualize_interference(source, x_list, y_list, weight_list, color, filename=None, size=4, figsize=(18,5), adjustment=True) :
-    source = draw_base_station(source, new_format=True)
-    temp_lat, temp_lon = 0,0
-    temp_c = (0, 0, 0)
-    temp_w = 0
-    color_not_yet = True
-    for lon, lat, c, w in zip(x_list, y_list, color, weight_list):
+
+@jit
+def visualize_pci(source, x_list, y_list, p1_list, p2_list, p3_list, p4_list, 
+                   p5_list, p6_list, p_o, filename=None, size=4,
+                   figsize=(18,5), adjustment=True, bs=True, scale_up=False) :
+    if scale_up:
+        size = 25
+    if bs:
+        source = draw_base_station(source, adjustment, scale_up = scale_up)
+    haha=0
+    for lon, lat, p1, p2, p3, p4, p5, p6 ,p0 in zip(x_list, y_list, p1_list,
+                                                             p2_list, p3_list, p4_list,
+                                                             p5_list, p6_list, p_o):
+        c = (0,0,0)
         
         if adjustment :
-            lat, lon = transform_lat_lng(lat, lon)
-            if lat != temp_lat or lon != temp_lon :
-                source = cv2.circle(source, (lon, lat), size, (128, 128, 128), -1)
-                color_not_yet = True
-            elif lat == temp_lat and lon == temp_lon and c != temp_c and color_not_yet == True :
-                source = cv2.circle(source, (lon, lat), size+6, temp_c, -1)
-                source = cv2.circle(source, (lon, lat), w+6, c, -1)
-                color_not_yet = False
-            elif lat == temp_lat and lon == temp_lon and c != temp_c and color_not_yet == False :  
-                source = cv2.circle(source, (lon, lat), temp_w+6, temp_c, -1)
-                source = cv2.circle(source, (lon, lat), w+4, c, -1)
-                
-        temp_lat, temp_lon = lat, lon
-        temp_c = c
-        temp_w = w
-        
-    fig = plt.figure(figsize=figsize)
-    plt.imshow(source, cmap = 'gray', interpolation = 'bicubic')
-    plt.xticks([]), plt.yticks([])  # to hide tick values on X and Y axis
-    plt.show()
-    
-    if filename != None :
-        fig.savefig(filename)
-        
-    return source
-
-
-def visualize_interference_level(source, x_list, y_list, weight_list, filename=None, size=0.5,
-                                 figsize=(18,5), adjustment=True) :
-    #d = 4.64
-    #dx,dy = transform_lat_lng(d, d)
-    for lon, lat, w in zip(x_list, y_list, weight_list):
-        
-        if adjustment :
-            lat, lon = transform_lat_lng(lat, lon)
+            lat, lon = transform_lat_lng(lat, lon, scale_up = scale_up)
+            a = [p1,p2,p3,p4,p5,p6,p0]
+            a_sorted=sorted(a)
+               
+            for i in range(0,7):
+                if a_sorted[6] == a[6] :
+                    c = (255, 255, 255)
+                elif a_sorted[6] == a[i] :
+                    c = pci_color_dict[37+i]
             
-            source = cv2.putText(source, str(w), (lon, lat), cv2.FONT_HERSHEY_SIMPLEX,
-                                     size, (0,0,0), 1, cv2.LINE_AA)
-                
-            #source = cv2.circle(source, (lon, lat), size, c, -1)
-        
+            source = cv2.circle(source, (lon, lat), size, c, -1)
+   
     fig = plt.figure(figsize=figsize)
     plt.imshow(source, cmap = 'gray', interpolation = 'bicubic')
     plt.xticks([]), plt.yticks([])  # to hide tick values on X and Y axis
@@ -862,75 +939,100 @@ def visualize_interference_level(source, x_list, y_list, weight_list, filename=N
         
     return source
 
+@jit
+def visualize_interference_level(source, x_list, y_list, weight_list, filename=None, size=0.5,
+                                 figsize=(18,5), adjustment=True, bs=False, scale_up=False) :
+    if scale_up:
+        size = 3
+        pen_t = 8
+        pen_tt = 10
+    else:
+        size = 0.3
+        pen_t = 1
+        pen_tt = 1
+    if bs:
+        source = draw_base_station(source, adjustment, scale_up = scale_up)
+    
+    for lon, lat, w in zip(x_list, y_list, weight_list):
+        b_x,b_y=40,104
+        if adjustment :
+            lat, lon = transform_lat_lng(lat, lon, scale_up = scale_up)
+            b_y, b_x = transform_lat_lng(b_y, b_x, scale_up = scale_up)
+            
+            source = cv2.putText(source, str(w), (lon+b_x, lat+b_y), cv2.FONT_HERSHEY_SIMPLEX,
+                                     size, (0,0,0), pen_t, cv2.LINE_AA)
+             
+    fig = plt.figure(figsize=figsize)
+    plt.imshow(source, cmap = 'gray', interpolation = 'bicubic')
+    plt.xticks([]), plt.yticks([])  # to hide tick values on X and Y axis
+    plt.show()
+    
+    if filename != None :
+        fig.savefig(filename)
+        
+    return source
+
+@jit
 def visualize_mode(source, x_list, y_list, p1_list, p2_list, p3_list, p4_list, 
                    p5_list, p6_list, p_o, p_sum,filename=None, size=0.1,
-                   figsize=(18,5), adjustment=True,dpi = 1) :
+                   figsize=(18,5), adjustment=True,dpi = 1,bs=False, scale_up=True) :
+    if bs:
+        source = draw_base_station(source, adjustment, scale_up = scale_up)
     haha=0
     for lon, lat, p1, p2, p3, p4, p5, p6 ,p0, total_p in zip(x_list, y_list, p1_list,
                                                              p2_list, p3_list, p4_list,
                                                              p5_list, p6_list, p_o, p_sum):
         c = (0,0,0)
+        b_x,b_y=40,104
         
         if adjustment :
-            lat, lon = transform_lat_lng(lat, lon, scale = True)
+            lat, lon = transform_lat_lng(lat, lon, scale_up = scale_up)
+            b_y, b_x = transform_lat_lng(b_y, b_x, scale_up = scale_up)
             a = [p1,p2,p3,p4,p5,p6,p0]
-            a=sorted(a)
+            a_sorted=sorted(a)
             #for i in range(37,43) :
-                
-            if a[6] == p1:
-                c = pci_color_dict[37]
-            elif a[6] == p2:
-                c = pci_color_dict[38]
-            elif a[6] == p3:
-                c = pci_color_dict[39]
-            elif a[6] == p4:
-                c = pci_color_dict[40]
-            elif a[6] == p5:
-                c = pci_color_dict[41]
-            elif a[6] == p6:
-                c = pci_color_dict[42]
-            elif a[6] == p0:
-                c = (0,0,0)
-            ratio = round(a[6]/total_p,2)
-            if ratio < 1 :
-                haha = haha+1
-                source = cv2.putText(source, str(ratio),
-                                     (lon, lat), cv2.FONT_HERSHEY_SIMPLEX,
-                                     size, c, 8, cv2.LINE_AA)
-                #source = cv2.circle(source, (lon, lat), size*6, c, -1)
+            for i in range(0,7):
+                if a_sorted[6] == a[6] :
+                    c = (0, 0, 0)
+                elif a_sorted[6] == a[i] :
+                    c = pci_color_dict[37+i]    
             
-            #source = cv2.circle(source, (lon, lat), size, c, -1)
-        
-       
-    
-    
+            ratio = round(a_sorted[6]/total_p,2)
+            if ratio >= 1:
+                source = cv2.circle(source, (lon, lat), size*5, c, -1)
+            if ratio < 1 :
+                #haha = haha+1 #haha is what you can use for checking the order of the points and plot below
+                source = cv2.putText(source, str(ratio),
+                                     (lon+b_x, lat+b_y), cv2.FONT_HERSHEY_SIMPLEX,
+                                     size, c, 8, cv2.LINE_AA)
+                #source = cv2.putText(source, str(haha),
+                #                     (lon, lat+47), cv2.FONT_HERSHEY_SIMPLEX,
+                #                     size, c, 8, cv2.LINE_AA)
+            
+                
+            
     fig = plt.figure(figsize = figsize,dpi = dpi)
     plt.imshow(source, cmap = 'gray', interpolation='bilinear')
-    #interpolation = 'bicubic',
     plt.xticks([]), plt.yticks([])  # to hide tick values on X and Y axis
-    
-    #plt.subplots_adjust(left=0.09,right=1,wspace=0.25,hspace=0.25,bottom=0.13,top=0.91)
-    
-    #if filename != None :
-    #    fig.savefig(filename)
     plt.savefig(filename)
     plt.show()
-    
-    
-        
+ 
     return source
 
+@jit
 def visualize_interference_rect(source, x_list, y_list, p1_list, p2_list, p3_list,
                                 p4_list, p5_list, p6_list, other_p_list, p_sum, 
-                                filename=None, d_reg=10, figsize=(18,5), adjustment=True,dpi = 1) :
-    
+                                filename=None, d_reg=10, figsize=(18,5), adjustment=True,dpi = 1
+                                ,bs=False, scale_up = True) :
+    if bs:
+        source = draw_base_station(source, adjustment, scale_up = scale_up)
     for lon, lat, p1, p2, p3,p4, p5, p6, p_other, total_p in zip(x_list, y_list, p1_list,
                                                                  p2_list, p3_list,p4_list,
                                                                  p5_list, p6_list, other_p_list,
                                                                  p_sum):
         
         if adjustment :
-            latx, lonx = transform_lat_lng(lat, lon, scale = True)
+            latx, lonx = transform_lat_lng(lat, lon, scale_up = scale_up)
             c = (0,0,0)
             a = [p1, p2, p3, p4, p5, p6, p_other]
             
@@ -939,17 +1041,11 @@ def visualize_interference_rect(source, x_list, y_list, p1_list, p2_list, p3_lis
             x_right = lonx+d_reg
             y_temp = latx+d_reg
             
-            #sum_at_this_point = sum(a)
-            
-           
             for i in range(0,7) :
                 if a[i] > 0 and a[i] == p_other:
                     c = (255,255,255)
                 elif a[i] > 0 :
                     c = pci_color_dict[i+37]
-                
-                #else :
-                #    print(str(lon)+","+str(lat)+" / "+str(c)+"  /  "+str(a[i]))
                 
                 if a[i] > 0 :
                     ratio_d = a[i]/total_p
@@ -959,8 +1055,11 @@ def visualize_interference_rect(source, x_list, y_list, p1_list, p2_list, p3_lis
                     top_left = (x_left, y_temp)
                     bottom_right = (x_right, np.round(y_temp-d).astype("int"))
                     y_temp = np.round(y_temp-d).astype("int")
+                    if ratio_d >= 1:
+                        source = cv2.circle(source, (lonx, latx), round(d_reg/6), c, -1)
                     if ratio_d < 1:
                         source = cv2.rectangle(source, top_left, bottom_right, c, -1)
+                    
                         
                           
     fig = plt.figure(figsize=figsize,dpi = dpi)
@@ -970,11 +1069,11 @@ def visualize_interference_rect(source, x_list, y_list, p1_list, p2_list, p3_lis
     
     if filename != None :
         fig.savefig(filename)
-        #fig.savefig(filename,dpi = 1500)
         
     return source
     
 
+@jit
 def visualize_pci_heatmap(background, x_coord_list, y_coord_list, pci_pred, filename, size=3) :
     background = np.array(background)
     heatmap = np.array(background)
@@ -995,12 +1094,16 @@ def visualize_pci_heatmap(background, x_coord_list, y_coord_list, pci_pred, file
         
     return final 
 
+@jit
 def visualize_cmap(source, x_list, y_list, color, cmap, normalize, filename=None, 
-                   size=4, figsize=(18,10), adjustment=True) :
-    
+                   size=4, figsize=(18,10), adjustment=True,bs=False,scale_up = False) :
+    if scale_up:
+        size = 25
+    if bs:
+        source = draw_base_station(source, adjustment, scale_up = scale_up)
     for lon, lat, c in zip(x_list, y_list, color):
         if adjustment :
-            lat, lon = transform_lat_lng(lat, lon)
+            lat, lon = transform_lat_lng(lat, lon, scale_up = scale_up)
         source = cv2.circle(source, (lon, lat), size, c, -1)
         
     fig=plt.figure(figsize=figsize)
@@ -1022,6 +1125,7 @@ def visualize_cmap(source, x_list, y_list, color, cmap, normalize, filename=None
         
     return source
 
+@jit
 def visualize_all_location_heatmap(background, x_list, y_list, color, cmap, normalize, filename=None, 
                                    size=4, figsize=(18,10), adjustment=True) :
     background = np.array(background)
@@ -1093,6 +1197,7 @@ def extract_data(config, feature=True, pure=False) :
         result["PCI"] = result["PCI"].astype('int32')
     return result
 
+@jit
 def get_data(config, pure, refresh) :
     if refresh :
         df = extract_data(config=config, feature=True, pure=pure)
@@ -1100,7 +1205,8 @@ def get_data(config, pure, refresh) :
         return df
     else :
         return pd.DataFrame.from_csv("db/all_summary.csv")
-    
+
+@jit    
 def print_size_per_priority(priority_config, df) :
     for p in priority_config :
         for s in priority_config[p] :
@@ -1124,6 +1230,7 @@ def generate_predicted_data_pci(predicted_set_config, all_x_pci, refresh=False) 
             all_x_pci_dict[(priority, set_value)] = x_rsrp
     return all_x_pci_dict
 
+@jit
 def merge_with_pci_groundtruth(rsrp_data, x_df, p, i, whitelist=[301, 302]) :
     pci_ground_truth = rsrp_data[(rsrp_data["priority"]==p) & (rsrp_data["set"]==i)]
     pci_ground_truth = pci_ground_truth[pci_ground_truth["PCI"].isin(whitelist)]
@@ -1141,6 +1248,7 @@ def merge_with_pci_groundtruth(rsrp_data, x_df, p, i, whitelist=[301, 302]) :
     x_df = x_df.rename(columns={"final_PCI":"PCI"})
     x_df["PCI"] = x_df["PCI"].apply(lambda x : pci_decode[int(x)])
     return x_df
+
 
 def generate_predicted_data_rsrp(rsrp_data, predicted_set_config, 
                                  x_coord_list, y_coord_list, all_y_pci, refresh=False) :
@@ -1168,6 +1276,7 @@ def generate_predicted_data_rsrp(rsrp_data, predicted_set_config,
             all_x_rsrp_dict[(p,s)] = x_rsrp
     return all_x_rsrp_dict
 
+@jit
 def merge_with_rsrp_groundtruth(rsrq_data, x_rsrq, p, i, whitelist=[301, 302]) :
     rsrp_ground_truth = rsrq_data[(rsrq_data["priority"]==p) & (rsrq_data["set"]==i)]
     rsrp_ground_truth = rsrp_ground_truth[rsrp_ground_truth["PCI"].isin(whitelist_PCI)]
@@ -1190,6 +1299,7 @@ def merge_with_rsrp_groundtruth(rsrq_data, x_rsrq, p, i, whitelist=[301, 302]) :
     x_rsrq["PCI"] = x_rsrq["PCI"].astype('int64')
 
     return x_rsrq
+
 
 def generate_predicted_data_rsrq(rsrq_data, predicted_set_config, 
                                  x_coord_list, y_coord_list, all_pred_rsrp_dict, refresh=False) :
@@ -1214,7 +1324,8 @@ def generate_predicted_data_rsrq(rsrq_data, predicted_set_config,
                 
             all_x_rsrq_dict[(p,s)] = x_rsrq
     return all_x_rsrq_dict
-        
+
+@jit        
 def merge_with_rsrq_groundtruth(snr_data, x_snr, p, i, whitelist=[301, 302]) :
     rsrq_ground_truth = snr_data[(snr_data["priority"]==p) & (snr_data["set"]==i)]
     rsrq_ground_truth = rsrq_ground_truth[rsrq_ground_truth["PCI"].isin(whitelist_PCI)]
@@ -1241,6 +1352,7 @@ def merge_with_rsrq_groundtruth(snr_data, x_snr, p, i, whitelist=[301, 302]) :
 
     return x_snr
 
+
 def generate_predicted_data_snr(snr_data, predicted_set_config, 
                                  x_coord_list, y_coord_list, all_pred_snr_dict, refresh=False) :
     all_x_snr_dict = {}
@@ -1264,11 +1376,13 @@ def generate_predicted_data_snr(snr_data, predicted_set_config,
                 
             all_x_snr_dict[(p,s)] = x_snr
     return all_x_snr_dict
-        
+
+@jit        
 def save_to_pickle(all_y, filename) :
     with open("db/"+filename+".pkl", 'wb') as f:
         pickle.dump(all_y, f)
-        
+
+@jit        
 def load_from_pickle(filename) :
     with open("db/"+filename+".pkl", 'rb') as f:
         datastore = pickle.load(f)
