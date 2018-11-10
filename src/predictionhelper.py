@@ -628,9 +628,14 @@ def extract_data(config, feature=True, pure=False) :
         result["PCI"] = result["PCI"].astype('int32')
     return result
 
-def get_data(config, pure, refresh) :
+def get_data(config, pure, refresh, base='../results/csv_pure/') :
     if refresh :
-        df = extract_data(config=config, feature=True, pure=pure)
+        result = pd.DataFrame()
+        for priority in config :
+            for set_value in config[priority] :
+                set_df = pd.DataFrame.from_csv(base + "set" + str(set_value) + ".csv")
+                result = pd.concat([result, set_df])
+#         df = extract_data(config=config, feature=True, pure=pure)
 #         cols = ["location_x", "location_y", "PCI", "RSRP", "RSRQ", "SNR", 
 #            'Power_37', 'Power_38', 'Power_39', 'Power_40', 'Power_41', 'Power_42',
 #            '37_beam0', '37_beam32', '37_beam64', '37_beam96', '37_beam128',
@@ -643,8 +648,8 @@ def get_data(config, pure, refresh) :
 #            'Angle_37', 'Angle_38', 'Angle_39', 'Angle_40', 'Angle_41', 'Angle_42', 'set']
 
 #         df_data = df_data[cols]
-        df.to_csv("db/all_summary.csv")
-        return df
+        result.to_csv("db/all_summary.csv")
+        return result
     else :
         return pd.DataFrame.from_csv("db/all_summary.csv")
     
