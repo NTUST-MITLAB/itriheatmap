@@ -816,7 +816,7 @@ def draw_base_station(source, adjustment=True, scale_up = False) :
         pen_tt = 1
     for bs in bs_location :
         x, y = bs_location[bs]
-        b_x,b_y=45,102
+        b_x,b_y=45,103
         color=bs_color[bs]
         r,g,b = color
         r=r+10
