@@ -1,0 +1,325 @@
+aafa7613-d456-4171-8698-72ac4931fc8f
+Device ID;1
+Device Label;Handy
+Device Name;samsung/SM-N910G
+Voice call connection success rate;N.A.
+Video call connection success rate;N.A.
+FTP transfer success rate;N.A.
+SFTP transfer success rate;N.A.
+HTTP transfer success rate;N.A.
+Dropbox transfer success rate;N.A.
+Browsing transfer success rate;N.A.
+Ping success rate;N.A.
+SMS success rate;N.A.
+MMS success rate;N.A.
+Facebook transfer success rate;N.A.
+YouTube transfer success rate;N.A.
+Twitter transfer success rate;N.A.
+Instagram transfer success rate;N.A.
+LinkedIn transfer success rate;N.A.
+Speedtest transfer success rate;N.A.
+E-mail connection success rate;N.A.
+E-mail send success rate;N.A.
+E-mail receiving success rate;N.A.
+Voice call attempt;0
+Voice call connected;0
+Voice call attempt failed;0
+Voice call disconnected;0
+Voice call dropped;0
+Voice call connection success rate;N.A.
+Video call connection success rate;N.A.
+Voice call drop rate;N.A.
+Voice call previous setup time;N.A.
+Voice call average setup time;N.A.
+CSFB call previous setup time;N.A.
+CSFB call average setup time;N.A.
+SRVCC attempts;N.A.
+SRVCC failures;N.A.
+SRVCC failure rate;N.A.
+SRVCC interruption time;N.A.
+Video call attempt;0
+Video call connected;0
+Video call attempt failed;0
+Video call disconnected;0
+Video call dropped;0
+Video call connection success rate;N.A.
+Video call connection success rate;N.A.
+Video call drop rate;N.A.
+Video call previous setup time;N.A.
+Video call average setup time;N.A.
+Video Call downgrade to voice call;0
+Voice Call upgrade to video call;0
+FTP connection attempt;0
+FTP connection success;0
+FTP connection failed;0
+FTP connection disconnected;0
+FTP connection dropped;0
+FTP connection success rate;N.A.
+FTP connection cut-off rate;N.A.
+FTP previous connection time;N.A.
+FTP average connection time;N.A.
+FTP transfer attempt;0
+FTP transfer success;0
+FTP transfer failed;0
+FTP transfer success rate;N.A.
+FTP transfer downlink tput avg(previous);N.A.
+FTP transfer downlink tput average(all);N.A.
+FTP transfer uplink tput avg(previous);N.A.
+FTP transfer uplink tput avg(all);N.A.
+SFTP connection attempt;0
+SFTP connection success;0
+SFTP connection failed;0
+SFTP connection disconnected;0
+SFTP connection dropped;0
+SFTP connection success rate;N.A.
+SFTP connection cut-off rate;N.A.
+SFTP previous connection time;N.A.
+SFTP average connection time;N.A.
+SFTP transfer attempt;0
+SFTP transfer success;0
+SFTP transfer failed;0
+SFTP transfer success rate;N.A.
+SFTP transfer downlink tput avg(previous);N.A.
+SFTP transfer downlink tput average(all);N.A.
+SFTP transfer uplink tput avg(previous);N.A.
+SFTP transfer uplink tput avg(all);N.A.
+HTTP connection attempt;0
+HTTP connection success;0
+HTTP connection failed;0
+HTTP connection disconnected;0
+HTTP connection dropped;0
+HTTP connection success rate;N.A.
+HTTP connection cut-off rate;N.A.
+HTTP previous connection time;N.A.
+HTTP average connection time;N.A.
+HTTP transfer attempt;0
+HTTP transfer success;0
+HTTP transfer failed;0
+HTTP transfer success rate;N.A.
+HTTP transfer downlink tput avg(previous);N.A.
+HTTP transfer downlink tput avg(all);N.A.
+HTTP transfer uplink tput avg(previous);N.A.
+HTTP transfer uplink tput avg(all);N.A.
+Dropbox connection attempt;0
+Dropbox connection success;0
+Dropbox connection failed;0
+Dropbox connection disconnected;0
+Dropbox connection dropped;0
+Dropbox connection success rate;N.A.
+Dropbox connection cut-off rate;N.A.
+Dropbox previous connection time;N.A.
+Dropbox average connection time;N.A.
+Dropbox transfer attempt;0
+Dropbox transfer success;0
+Dropbox transfer failed;0
+Dropbox transfer success rate;N.A.
+Dropbox transfer downlink tput avg(previous);N.A.
+Dropbox transfer downlink tput avg(all);N.A.
+Dropbox transfer uplink tput avg(previous);N.A.
+Dropbox transfer uplink tput avg(all);N.A.
+Browsing connection attempt;0
+Browsing connection success;0
+Browsing connection failed;0
+Browsing connection success rate;N.A.
+Browsing connection disconnected;0
+Browsing connection dropped;0
+Browsing connection cut-off rate;N.A.
+Browsing transfer attempt;0
+Browsing transfer success;0
+Browsing transfer failed;0
+Browsing transfer success rate;N.A.
+Browsing previous loading time;N.A.
+Browsing average loading time;N.A.
+Ping attempt;0
+Ping success;0
+Ping failed;0
+Ping success rate;N.A.
+Ping RTT min;N.A.
+Ping RTT max;N.A.
+Ping RTT avg;N.A.
+SMS attempt;0
+SMS success;0
+SMS failed;0
+SMS success rate;N.A.
+MMS attempt;0
+MMS success;0
+MMS failed;0
+MMS success rate;N.A.
+Iperf TCP connection attempt;0
+Iperf TCP connection success;0
+Iperf TCP connection failed;0
+Iperf TCP connection disconnected;0
+Iperf TCP connection dropped;0
+Iperf TCP connection success rate;N.A.
+Iperf TCP connection cut-off rate;N.A.
+Iperf TCP transfer attempt;0
+Iperf TCP transfer success;0
+Iperf TCP transfer failed;0
+Iperf TCP transfer success rate;N.A.
+Iperf UDP connection attempt;0
+Iperf UDP connection success;0
+Iperf UDP connection failed;0
+Iperf UDP connection disconnected;0
+Iperf UDP connection dropped;0
+Iperf UDP connection success rate;N.A.
+Iperf UDP connection cut-off rate;N.A.
+Iperf UDP transfer attempt;0
+Iperf UDP transfer success;0
+Iperf UDP transfer failed;0
+Iperf UDP transfer success rate;N.A.
+Facebook connection attempt;0
+Facebook connection success;0
+Facebook connection failed;0
+Facebook connection disconnected;0
+Facebook connection dropped;0
+Facebook connection success rate;N.A.
+Facebook connection cut-off rate;N.A.
+Facebook transfer attempt;0
+Facebook transfer success;0
+Facebook transfer failed;0
+Facebook transfer success rate;N.A.
+Facebook transfer downlink tput avg(previous);N.A.
+Facebook transfer downlink tput average(all);N.A.
+Facebook transfer uplink tput avg(previous);N.A.
+Facebook transfer uplink tput avg(all);N.A.
+YouTube connection attempt;0
+YouTube connection success;0
+YouTube connection failed;0
+YouTube connection disconnected;0
+YouTube connection dropped;0
+YouTube connection success rate;N.A.
+YouTube connection cut-off rate;N.A.
+YouTube transfer attempt;0
+YouTube transfer success;0
+YouTube transfer failed;0
+YouTube transfer success rate;N.A.
+YouTube transfer downlink tput avg(previous);N.A.
+YouTube transfer downlink tput average(all);N.A.
+Twitter connection attempt;0
+Twitter connection success;0
+Twitter connection failed;0
+Twitter connection disconnected;0
+Twitter connection dropped;0
+Twitter connection success rate;N.A.
+Twitter connection cut-off rate;N.A.
+Twitter transfer attempt;0
+Twitter transfer success;0
+Twitter transfer failed;0
+Twitter transfer success rate;N.A.
+Twitter transfer downlink tput avg(previous);N.A.
+Twitter transfer downlink tput average(all);N.A.
+Twitter transfer uplink tput avg(previous);N.A.
+Twitter transfer uplink tput avg(all);N.A.
+Instagram connection attempt;0
+Instagram connection success;0
+Instagram connection failed;0
+Instagram connection disconnected;0
+Instagram connection dropped;0
+Instagram connection success rate;N.A.
+Instagram connection cut-off rate;N.A.
+Instagram transfer attempt;0
+Instagram transfer success;0
+Instagram transfer failed;0
+Instagram transfer success rate;N.A.
+Instagram transfer downlink tput avg(previous);N.A.
+Instagram transfer downlink tput average(all);N.A.
+Instagram transfer uplink tput avg(previous);N.A.
+Instagram transfer uplink tput avg(all);N.A.
+LinkedIn connection attempt;0
+LinkedIn connection success;0
+LinkedIn connection failed;0
+LinkedIn connection disconnected;0
+LinkedIn connection dropped;0
+LinkedIn connection success rate;N.A.
+LinkedIn connection cut-off rate;N.A.
+LinkedIn transfer attempt;0
+LinkedIn transfer success;0
+LinkedIn transfer failed;0
+LinkedIn transfer success rate;N.A.
+LinkedIn transfer downlink tput avg(previous);N.A.
+LinkedIn transfer downlink tput average(all);N.A.
+LinkedIn transfer uplink tput avg(previous);N.A.
+LinkedIn transfer uplink tput avg(all);N.A.
+Speedtest connection attempt;0
+Speedtest connection success;0
+Speedtest connection failed;0
+Speedtest connection disconnected;0
+Speedtest connection dropped;0
+Speedtest connection success rate;N.A.
+Speedtest connection cut-off rate;N.A.
+Speedtest transfer attempt;0
+Speedtest transfer success;0
+Speedtest transfer failed;0
+Speedtest transfer success rate;N.A.
+Speedtest transfer downlink tput (previous);N.A.
+Speedtest transfer downlink tput (average);N.A.
+Speedtest transfer uplink tput (previous);N.A.
+Speedtest transfer uplink tput (average);N.A.
+Speedtest RTT min;N.A.
+Speedtest RTT max;N.A.
+Speedtest RTT avg;N.A.
+E-mail connection attempt;0
+E-mail connection success;0
+E-mail connection failed;0
+E-mail connection success rate;N.A.
+E-mail send attempt;0
+E-mail send success;0
+E-mail send failed;0
+E-mail send success rate;N.A.
+E-mail receiving attempt;0
+E-mail receiving success;0
+E-mail receiving failed;0
+E-mail receiving success rate;N.A.
+GSM to UMTS handover;0
+UMTS to GSM handover;0
+GSM to UMTS cell CREL during data;0
+UMTS to GSM CREL during data;0
+GSM to UMTS CREL while idle;0
+UMTS to GSM CREL while idle;0
+GSM intrasystem handover;0
+UMTS intrasystem handover;0
+GSM intrasystem cell reselection during data;0
+UMTS intrasystem cell reselection during data;0
+GSM intrasystem cell reselection while idle;0
+UMTS intrasystem cell reselection while idle;0
+EC/N0 max;N.A.
+EC/N0 min;N.A.
+EC/N0 avg;N.A.
+RSCP max;N.A.
+RSCP min;N.A.
+RSCP avg;N.A.
+RSRP max;-75.000000
+RSRP min;-81.562500
+RSRP avg;-77.291321
+RSRQ max;-5.500000
+RSRQ min;-7.750000
+RSRQ avg;-6.073611
+RX Level max;N.A.
+RX Level min;N.A.
+RX Level avg;N.A.
+RX Quality max;N.A.
+RX Quality min;N.A.
+RX Quality avg;N.A.
+C/I max;N.A.
+C/I min;N.A.
+C/I avg;N.A.
+App Tput UL max;N.A.
+App Tput UL avg;N.A.
+App Tput DL max;N.A.
+App Tput DL avg;N.A.
+CDMA Ec/I0 max;N.A.
+CDMA Ec/I0 min;N.A.
+CDMA Ec/I0 avg;N.A.
+CDMA RSCP max;N.A.
+CDMA RSCP min;N.A.
+CDMA RSCP avg;N.A.
+RSRP max;-75.000000
+RSRP min;-81.562500
+RSRP avg;-77.291321
+RSRQ max;-5.500000
+RSRQ min;-7.750000
+RSRQ avg;-6.073611
+App Tput UL max;N.A.
+App Tput UL avg;N.A.
+App Tput DL max;N.A.
+App Tput DL avg;N.A.
