@@ -1,0 +1,14 @@
+[CoordinateFormat]
+coordinatesystem=metric
+[Datafile]
+filename=51_5F_Map_png.tab
+[markercount]
+markers=2
+[marker0]
+index=0
+lat=209.000000
+lon=648.000000
+[marker1]
+index=1
+lat=209.000000
+lon=648.000000
