@@ -6,8 +6,7 @@
 
 from matplotlib import pyplot as plt
 from matplotlib.patches import Circle
-from datetime import timedelta
-from numba import jit
+from datetime import timedelta,datetime
 
 import pickle
 import json
@@ -571,6 +570,12 @@ def filtering_dict(data_dict, func) :
             
     return summary
 
+def cal_timedelta(time_str,time_str2):
+    datetime_object = datetime.strptime(time_str, '%H:%M:%S.%f')
+    datetime_object2 = datetime.strptime(time_str2, '%H:%M:%S.%f')
+    t=datetime_object2-datetime_object
+    return t.total_seconds()
+
 def count_interference(data_dict) :
     pci_interference_list=[0,0,0,0,0,0,0,0]
     for lat in data_dict :
@@ -645,15 +650,16 @@ def summary_dict_to_list_time(data_dict) :
     y = []
     z = []
     xx = []
+    val = 0
     for lat in data_dict :
         for lon in data_dict[lat] :
             for time in data_dict[lat][lon] :
                 #for val in data_dict[lat][lon][pci] :
-                    val = data_dict[lat][lon][time]
-                    x.append(lon)
-                    y.append(lat)
-                    z.append(time)
-                    xx.append(val)
+                val = data_dict[lat][lon][time]
+                x.append(lon)
+                y.append(lat)
+                z.append(time)
+                xx.append(val)
     return np.array(x), np.array(y), np.array(z), np.array(xx)
 
 def summary_dict_to_list_multi_pci(data_dict) :
@@ -865,6 +871,59 @@ def visualize(source, x_list, y_list, pci_list, filename=None, size=4, figsize=(
         fig.savefig(filename)
         
     return source
+
+def visualize_time_1_pic(source, x_list, y_list, pci_list, time_list,
+                         time_already_dict, filename=None, size=4, time_interval=10,
+                         figsize=(18,5), adjustment=True, bs=True) :
+    if bs:
+        source = draw_base_station(source, adjustment)
+    
+    if len(x_list)<=0 or len(y_list)<=0 or len(pci_list)<=0:
+        sys.exit()
+        
+    end_flag=True
+    lon_temp=[]
+    lat_temp=[]
+    
+    for lon, lat, time, pci in zip(x_list, y_list, time_list, pci_list):
+        c = (0,0,0)
+        
+        if adjustment :
+            lat, lon = transform_lat_lng(lat, lon)
+            #first time load in
+            if lon not in time_already_dict:
+                time_already_dict[lon]={}
+            if lat not in time_already_dict[lon]:
+                time_already_dict[lon][lat]=time
+                lon_temp.append(lon)
+                lat_temp.append(lat)
+                c = pci_color_dict[pci] if pci in pci_color_dict else (255, 255, 255)
+                source = cv2.circle(source, (lon, lat), size, c, -1)
+                #print(str(lon)+"/"+str(lat)+"/"+str(time)+"/"+str(pci)+"/"+str(i))
+                end_flag=False
+            
+            elif lon in time_already_dict and lat in time_already_dict[lon]:
+                if lon not in lon_temp or lat not in lat_temp:
+                    if cal_timedelta(time_already_dict[lon][lat], time) > time_interval:
+                        time_already_dict[lon][lat]=time
+                        lon_temp.append(lon)
+                        lat_temp.append(lat)
+                        c = pci_color_dict[pci] if pci in pci_color_dict else (255, 255, 255)
+                        source = cv2.circle(source, (lon, lat), size, c, -1)
+                        #print(str(lon)+"/"+str(lat)+"/"+str(time)+"/"+str(pci)+"/"+str(i))
+                        end_flag=False
+
+        
+    fig = plt.figure(figsize=figsize)
+    plt.imshow(source, cmap = 'gray', interpolation = 'bicubic')
+    plt.xticks([]), plt.yticks([])  # to hide tick values on X and Y axis
+
+    if filename != None :
+        fig.savefig(filename)
+        
+    plt.close(fig)
+    
+    return time_already_dict,source,end_flag
 
 def visualize_pci(source, x_list, y_list, p1_list, p2_list, p3_list, p4_list, 
                    p5_list, p6_list, p_o, filename=None, size=4,
