@@ -884,6 +884,7 @@ def visualize_time_1_pic(source, x_list, y_list, pci_list, time_list,
     end_flag=True
     lon_temp=[]
     lat_temp=[]
+    count= 0
     
     for lon, lat, time, pci in zip(x_list, y_list, time_list, pci_list):
         c = (0,0,0)
@@ -904,7 +905,7 @@ def visualize_time_1_pic(source, x_list, y_list, pci_list, time_list,
             
             elif lon in time_already_dict and lat in time_already_dict[lon]:
                 if lon not in lon_temp or lat not in lat_temp:
-                    if cal_timedelta(time_already_dict[lon][lat], time) > time_interval:
+                    if cal_timedelta(time_already_dict[lon][lat], time) > time_interval and cal_timedelta(time_already_dict[lon][lat], time) <= time_interval*2:
                         time_already_dict[lon][lat]=time
                         lon_temp.append(lon)
                         lat_temp.append(lat)
@@ -1010,7 +1011,7 @@ def visualize_mode(source, x_list, y_list, p1_list, p2_list, p3_list, p4_list,
             b_y, b_x = transform_lat_lng(b_y, b_x, scale_up = scale_up)
             a = [p1,p2,p3,p4,p5,p6,p0]
             a_sorted=sorted(a)
-            #for i in range(37,43) :
+            
             for i in range(0,7):
                 if a_sorted[6] == a[6] :
                     c = (0, 0, 0)
