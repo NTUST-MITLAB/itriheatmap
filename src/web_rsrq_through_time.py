@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[2]:
 
 
 import matplotlib
@@ -9,7 +9,7 @@ import loadnotebook
 from helper import * 
 
 
-# In[2]:
+# In[3]:
 
 
 #Check the priority and set first
@@ -25,7 +25,7 @@ else:
     lock_pci = True
     '''
 priority = 6
-set_value = 5
+set_value = 33
 
 #Set lock_pci = True, if you want to show the map for one specific pci
 #And the pci_locker is which pci you want 
@@ -38,7 +38,6 @@ pci_locker = 13
 source = get_source(priority, set_value)
 
 #make sure there is the correct path for file to put in
-
 output_csv = "../results/demo_priority_" + str(priority) + "/set" + str(set_value) + ".csv"
     
 def get_output_image(prefix="") :
@@ -46,7 +45,7 @@ def get_output_image(prefix="") :
         return "../results/demo_priority_" + str(priority) + "/images/set" +             str(set_value) +"/"+str(pci_locker)+ "_" + prefix + ".png"
     else:
         return "../results/demo_priority_" + str(priority) + "/images/set" +             str(set_value) + "_" + prefix + ".png"
-    
+
 def get_output_image_movie(prefix="") :
     if lock_pci and pci_locker in whitelist_PCI:
         return "../results/demo_priority_" + str(priority) + "/movie_element/set" +             str(set_value) +"/"+str(pci_locker)+ "_" + prefix + ".png"
@@ -59,35 +58,40 @@ result = pd.read_csv(output_csv) #read csv as df
 if lock_pci and pci_locker in whitelist_PCI:
     filter = result["PCI"] == pci_locker
     result=result[filter]
-
-#if not lock_pci :
-
+    
 #TIME DEPEND PCI RESULT 
 
-df = result.dropna(subset=["PCI"])
+df = result.dropna(subset=["RSRQ"])
 df=df.reset_index()
 lon_list = df["location_x"].astype('int32')
 lat_list = df["location_y"].astype('int32')
 time_list = df["timestamp"].apply(str)
-pci_list = df["PCI"].astype('int32')
+rsrq_list = df["RSRQ"].astype('int32')
+
+#RSRQ Location Map_mean
+rsrq_list=rsrq_list.values
+
+normalize_rsrq = matplotlib.colors.Normalize(vmin=-30, vmax=-0.4)
+
+colors_rsrq = [cmap(normalize_rsrq(value))[:3] for value in rsrq_list]
+colors_rsrq = [[int(x*255) for x in value] for value in colors_rsrq]
 
 end_f=False
 time_already_dict={}
-pci_already_dict={}
+rsrq_already_dict={}
 count = 0
 time_interval=5
 
 while (not end_f and count < 120/time_interval) :
-    new_format=True
-    new_backtorgb = get_map_image(new_format=new_format)
-    temp_dict=time_already_dict
-    time_already_dict, pci_already_dict,    new_backtorgb,end_f = visualize_time_pic(new_backtorgb, lon_list,
-                                               lat_list, pci_list,
-                                               time_list, time_already_dict,
-                                               pci_already_dict,
-                                               get_output_image_movie("pci_"+str(count)),
-                                               time_interval=time_interval,
-                                               adjustment=new_format)
+    new_backtorgb = get_map_image()
+    time_already_dict, rsrq_already_dict,    new_backtorgb,end_f = visualize_time_cmap(new_backtorgb, lon_list,
+                                              lat_list, colors_rsrq,
+                                              time_list, time_already_dict,
+                                              rsrq_already_dict,
+                                              cmap,
+                                              normalize_rsrq, 
+                                              get_output_image_movie("rsrq_"+str(count)),
+                                              time_interval=time_interval)
     count=count+1
        
 print("----DONE!!!----")

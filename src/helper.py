@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[2]:
 
 
 from matplotlib import pyplot as plt
@@ -872,9 +872,9 @@ def visualize(source, x_list, y_list, pci_list, filename=None, size=4, figsize=(
         
     return source
 
-def visualize_time_1_pic(source, x_list, y_list, pci_list, time_list,
-                         time_already_dict, filename=None, size=4, time_interval=10,
-                         figsize=(18,5), adjustment=True, bs=True) :
+def visualize_time_pci(source, x_list, y_list, pci_list, time_list ,time_already_dict, pci_already_dict,
+                   filename=None, size=4, time_interval=10,
+                   figsize=(18,5), adjustment=True, bs=True) :
     if bs:
         source = draw_base_station(source, adjustment)
     
@@ -893,9 +893,15 @@ def visualize_time_1_pic(source, x_list, y_list, pci_list, time_list,
             lat, lon = transform_lat_lng(lat, lon)
             #first time load in
             if lon not in time_already_dict:
-                time_already_dict[lon]={}
-            if lat not in time_already_dict[lon]:
-                time_already_dict[lon][lat]=time
+                
+                time_already_dict[lon] = {}
+                pci_already_dict[lon] = {}
+                
+            if lat not in time_already_dict[lon]: #first time to visualize
+                
+                time_already_dict[lon][lat] = time
+                pci_already_dict[lon][lat] = pci
+                
                 lon_temp.append(lon)
                 lat_temp.append(lat)
                 c = pci_color_dict[pci] if pci in pci_color_dict else (255, 255, 255)
@@ -903,16 +909,23 @@ def visualize_time_1_pic(source, x_list, y_list, pci_list, time_list,
                 #print(str(lon)+"/"+str(lat)+"/"+str(time)+"/"+str(pci)+"/"+str(i))
                 end_flag=False
             
-            elif lon in time_already_dict and lat in time_already_dict[lon]:
+            if lon in time_already_dict and lat in time_already_dict[lon]: #other everytime visualization
                 if lon not in lon_temp or lat not in lat_temp:
-                    if cal_timedelta(time_already_dict[lon][lat], time) > time_interval and cal_timedelta(time_already_dict[lon][lat], time) <= time_interval*2:
+                    if cal_timedelta(time_already_dict[lon][lat], time) >= time_interval:
+                        if pci != pci_already_dict[lon][lat]:
+                            pci_already_dict[lon][lat] = pci
+                            
                         time_already_dict[lon][lat]=time
+                        
                         lon_temp.append(lon)
                         lat_temp.append(lat)
-                        c = pci_color_dict[pci] if pci in pci_color_dict else (255, 255, 255)
-                        source = cv2.circle(source, (lon, lat), size, c, -1)
-                        #print(str(lon)+"/"+str(lat)+"/"+str(time)+"/"+str(pci)+"/"+str(i))
                         end_flag=False
+
+    
+    for lon_d in  pci_already_dict :
+        for lat_d in pci_already_dict[lon_d]:
+            c = pci_color_dict[pci_already_dict[lon_d][lat_d]] if pci_already_dict[lon_d][lat_d]             in pci_color_dict else (255, 255, 255)
+            source = cv2.circle(source, (lon_d, lat_d), size, c, -1)               
 
         
     fig = plt.figure(figsize=figsize)
@@ -924,8 +937,84 @@ def visualize_time_1_pic(source, x_list, y_list, pci_list, time_list,
         
     plt.close(fig)
     
-    return time_already_dict,source,end_flag
+    return time_already_dict, pci_already_dict, source, end_flag
 
+def visualize_time_cmap(source, x_list, y_list, color_list, time_list ,time_already_dict, color_already_dict,
+                   cmap, normalize, filename=None, time_interval=10,
+                   size=4, figsize=(18,10), adjustment=True,bs=False,scale_up = False) :
+    if bs:
+        source = draw_base_station(source, adjustment)
+    
+    if len(x_list)<=0 or len(y_list)<=0 or len(color_list)<=0:
+        sys.exit()
+        
+    end_flag=True
+    lon_temp=[]
+    lat_temp=[]
+    count= 0
+    
+    for lon, lat, time, c in zip(x_list, y_list, time_list, color_list):
+        
+        if adjustment :
+            lat, lon = transform_lat_lng(lat, lon)
+            #first time load in
+            if lon not in time_already_dict:
+                
+                time_already_dict[lon] = {}
+                color_already_dict[lon] = {}
+                
+            if lat not in time_already_dict[lon]: #first time to visualize
+                
+                time_already_dict[lon][lat] = time
+                color_already_dict[lon][lat] = c
+                
+                lon_temp.append(lon)
+                lat_temp.append(lat)
+                source = cv2.circle(source, (lon, lat), size, c, -1)
+                #print(str(lon)+"/"+str(lat)+"/"+str(time)+"/"+str(pci)+"/"+str(i))
+                end_flag=False
+            
+            if lon in time_already_dict and lat in time_already_dict[lon]: #other everytime visualization
+                if lon not in lon_temp or lat not in lat_temp:
+                    if cal_timedelta(time_already_dict[lon][lat], time) >= time_interval:
+                        if c != color_already_dict[lon][lat]:
+                            color_already_dict[lon][lat] = c
+                            
+                        time_already_dict[lon][lat] = time
+                        
+                        lon_temp.append(lon)
+                        lat_temp.append(lat)
+                        end_flag=False
+
+    
+    for lon_d in  color_already_dict :
+        for lat_d in color_already_dict[lon_d]:
+            cc=color_already_dict[lon_d][lat_d]
+            source = cv2.circle(source, (lon_d, lat_d), size, cc, -1)               
+
+        
+    
+    
+    fig=plt.figure(figsize=figsize)
+    columns = 1
+    rows = 2
+    
+    fig.add_subplot(rows, columns, 1)
+    plt.imshow(source)
+    
+    
+    ax1 = fig.add_subplot(7, columns, 5)
+    cb1 = matplotlib.colorbar.ColorbarBase(ax1, cmap=cmap,
+                                    norm=normalize,
+                                    orientation='horizontal')
+    #plt.show()
+
+    if filename != None :
+        fig.savefig(filename)
+    plt.close(fig)
+    
+    return time_already_dict, color_already_dict, source, end_flag
+#---------------------------------------------------------------------------
 def visualize_pci(source, x_list, y_list, p1_list, p2_list, p3_list, p4_list, 
                    p5_list, p6_list, p_o, filename=None, size=4,
                    figsize=(18,5), adjustment=True, bs=True, scale_up=False) :

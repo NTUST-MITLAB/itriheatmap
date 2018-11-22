@@ -15,7 +15,15 @@ from helper import *
 #Check the priority and set first
 #And modify whitelist in helper
 #lock_pci and pci_locker are for single pci map
-
+'''
+import sys
+set_value = sys.argv[1]
+pci_locker = int(sys.argv[2])
+if pci_locker == 0:
+    lock_pci = False
+else:
+    lock_pci = True
+    '''
 priority = 6
 set_value = 1
 
@@ -46,7 +54,7 @@ if lock_pci and pci_locker in whitelist_PCI:
     result=result[filter]
 #RSRP Location Map
 
-df = result.dropna(subset=["RSRQ"])
+df = result.dropna(subset=["RSRP"])
 lon_list = df["location_x"].astype('int32')
 lat_list = df["location_y"].astype('int32')
 rsrp_list = df["RSRP"].astype('int32')
