@@ -81,7 +81,7 @@ while (not end_f and count < 120/time_interval) :
     new_format=True
     new_backtorgb = get_map_image(new_format=new_format)
     temp_dict=time_already_dict
-    time_already_dict, pci_already_dict,    new_backtorgb,end_f = visualize_time_pic(new_backtorgb, lon_list,
+    time_already_dict, pci_already_dict,    new_backtorgb,end_f = visualize_time_pci(new_backtorgb, lon_list,
                                                lat_list, pci_list,
                                                time_list, time_already_dict,
                                                pci_already_dict,
