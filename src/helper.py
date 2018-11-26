@@ -933,7 +933,7 @@ def visualize_time_pci(source, x_list, y_list, pci_list, time_list ,time_already
     plt.xticks([]), plt.yticks([])  # to hide tick values on X and Y axis
 
     if filename != None :
-        fig.savefig(filename)
+        fig.savefig(filename, transparent = True, bbox_inches = 'tight', pad_inches = 0)
         
     plt.close(fig)
     
@@ -1010,7 +1010,7 @@ def visualize_time_cmap(source, x_list, y_list, color_list, time_list ,time_alre
     #plt.show()
 
     if filename != None :
-        fig.savefig(filename)
+        fig.savefig(filename, transparent = True, bbox_inches = 'tight', pad_inches = 0)
     plt.close(fig)
     
     return time_already_dict, color_already_dict, source, end_flag
@@ -1047,7 +1047,7 @@ def visualize_pci(source, x_list, y_list, p1_list, p2_list, p3_list, p4_list,
     plt.show()
     
     if filename != None :
-        fig.savefig(filename)
+        fig.savefig(filename, transparent = True, bbox_inches = 'tight', pad_inches = 0)
         
     return source
 
@@ -1079,7 +1079,7 @@ def visualize_interference_level(source, x_list, y_list, weight_list, filename=N
     plt.show()
     
     if filename != None :
-        fig.savefig(filename)
+        fig.savefig(filename, transparent = True, bbox_inches = 'tight', pad_inches = 0)
         
     return source
 
@@ -1124,7 +1124,7 @@ def visualize_mode(source, x_list, y_list, p1_list, p2_list, p3_list, p4_list,
     fig = plt.figure(figsize = figsize,dpi = dpi)
     plt.imshow(source, cmap = 'gray', interpolation='bilinear')
     plt.xticks([]), plt.yticks([])  # to hide tick values on X and Y axis
-    plt.savefig(filename)
+    plt.savefig(filename, transparent = True, bbox_inches = 'tight', pad_inches = 0)
     plt.show()
  
     return source
@@ -1177,7 +1177,7 @@ def visualize_interference_rect(source, x_list, y_list, p1_list, p2_list, p3_lis
     plt.show()
     
     if filename != None :
-        fig.savefig(filename)
+        fig.savefig(filename, transparent = True, bbox_inches = 'tight', pad_inches = 0)
         
     return source
 
@@ -1227,7 +1227,7 @@ def visualize_cmap(source, x_list, y_list, color, cmap, normalize, filename=None
     plt.show()
 
     if filename != None :
-        fig.savefig(filename)
+        fig.savefig(filename, transparent = True, bbox_inches = 'tight', pad_inches = 0)
         
     return source
 
