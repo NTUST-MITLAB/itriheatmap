@@ -32,26 +32,36 @@ df_all_data = get_data(config=demo_config, pure=True, refresh=False)
 print(len(df_all_data))
 
 
-# In[3]:
+# In[107]:
 
 
 prediction_columns = ["RSRP", "RSRQ", "SNR"]
-pred_index = 0
+pred_index = 2
 pred_col = prediction_columns[pred_index]
 
 
-# In[4]:
+# In[112]:
 
 
 dropped_columns = [c for c in df_all_data if "beam" in c] + prediction_columns[pred_index+1:]
 df_data = df_all_data.drop(dropped_columns, axis=1)
 df_data = df_data[df_data["PCI"].isin(whitelist_PCI)]
-df_data['RSRP'] = merge_agg(df_data, ['location_x', 'location_y', 'PCI'], pred_col, ['mean'])['mean']
+
+group = ['location_x', 'location_y', 'PCI'] + prediction_columns[:pred_index]
+group = ['location_x', 'location_y', 'PCI'] 
+df_data[pred_col] = merge_agg(df_data, group, pred_col, ['mean'])['mean']
 df_data = df_data.drop_duplicates()
+df_data = df_data.dropna()
 len(df_data)
 
 
-# In[5]:
+# In[113]:
+
+
+df_data
+
+
+# In[114]:
 
 
 data_train, data_test = pd.DataFrame(), pd.DataFrame()
@@ -66,7 +76,7 @@ for p in demo_config :
 print(len(data_train), len(data_test))
 
 
-# In[6]:
+# In[115]:
 
 
 exclude_train_col = ['priority', pred_col]
@@ -96,7 +106,7 @@ from bayes_opt import BayesianOptimization
 import sklearn.metrics as metric
 
 
-# In[8]:
+# In[15]:
 
 
 class xgboost_target :
@@ -144,7 +154,7 @@ class xgboost_target :
         return -1*rmse
 
 
-# In[9]:
+# In[116]:
 
 
 xt = xgboost_target(x_train, y_train, x_test, y_test)
@@ -160,7 +170,7 @@ xgbBO = BayesianOptimization(xt.evaluate, {'learning_rate': (1, 12),
 xgbBO.maximize(init_points=10, n_iter=5)
 
 
-# In[10]:
+# In[117]:
 
 
 params = xt.clean_param(xgbBO.res['max']['max_params'])
@@ -174,9 +184,16 @@ rmse = math.sqrt(mse)
 print(rmse)
 
 
-# In[11]:
+# In[118]:
 
 
+params
+
+
+# In[122]:
+
+
+# RSRP
 xgboost_params = {'base_score': 0.5,
                  'booster': 'gbtree',
                  'missing': None,
@@ -197,8 +214,54 @@ xgboost_params = {'base_score': 0.5,
                  'max_delta_weight': 18,
                  'rate_drop': 0.9831392947354712}
 
+# RSRQ
+xgboost_params = {
+    'base_score': 0.5,
+ 'booster': 'dart',
+ 'missing': None,
+ 'n_estimators': 100,
+ 'n_jobs': 1,
+ 'random_state': 1,
+ 'reg_lambda': 1,
+ 'alpha': 0,
+ 'scale_pos_weight': 1,
+ 'subsample': 1,
+ 'colsample_bytree': 1,
+ 'colsample_bylevel': 1,
+ 'objective': 'reg:linear',
+ 'learning_rate': 0.12,
+ 'gamma': 0.0,
+ 'max_depth': 12,
+ 'min_child_weight': 1,
+ 'max_delta_weight': 20,
+ 'rate_drop': 0.0
+}
 
-# In[12]:
+# SNR
+xgboost_params = {
+    'base_score': 0.5,
+ 'booster': 'gbtree',
+ 'missing': None,
+ 'n_estimators': 100,
+ 'n_jobs': 1,
+ 'random_state': 1,
+ 'reg_lambda': 1,
+ 'alpha': 0,
+ 'scale_pos_weight': 1,
+ 'subsample': 1,
+ 'colsample_bytree': 1,
+ 'colsample_bylevel': 1,
+ 'objective': 'reg:linear',
+ 'learning_rate': 0.11344922576561457,
+ 'gamma': 2.0300576525340643,
+ 'max_depth': 3,
+ 'min_child_weight': 1,
+ 'max_delta_weight': 20,
+ 'rate_drop': 1.0
+}
+
+
+# In[123]:
 
 
 xgb_model = XGBRegressor(**xgboost_params)
@@ -213,7 +276,7 @@ print(rmse)
 
 # # LGBM 
 
-# In[13]:
+# In[22]:
 
 
 import lightgbm
@@ -221,7 +284,7 @@ import lightgbm as lgb
 from lightgbm import LGBMRegressor
 
 
-# In[46]:
+# In[23]:
 
 
 class lgbm_target :
@@ -262,7 +325,7 @@ class lgbm_target :
         return -1*rmse
 
 
-# In[15]:
+# In[119]:
 
 
 lt = lgbm_target(x_train, y_train, x_test, y_test)
@@ -275,7 +338,7 @@ lgbmBO = BayesianOptimization(lt.evaluate, {'min_child_weight': (0.01, 1),
 lgbmBO.maximize(init_points=3, n_iter=10)
 
 
-# In[16]:
+# In[120]:
 
 
 params = lt.clean_param(lgbmBO.res['max']['max_params'])
@@ -288,15 +351,16 @@ rmse = math.sqrt(mse)
 print(rmse)
 
 
-# In[17]:
+# In[121]:
 
 
 params
 
 
-# In[18]:
+# In[124]:
 
 
+# RSRP
 lgbm_params = {'boosting_type': 'gbdt',
                  'class_weight': None,
                  'colsample_bytree': 1.0,
@@ -317,8 +381,58 @@ lgbm_params = {'boosting_type': 'gbdt',
                  'max_depth': -1,
                  'learning_rate': 0.1}
 
+# RSRQ
+lgbm_params = {
+    'boosting_type': 'gbdt',
+ 'class_weight': None,
+ 'colsample_bytree': 1.0,
+ 'importance_type': 'split',
+ 'min_child_samples': 20,
+ 'min_split_gain': 0.0,
+ 'n_estimators': 100,
+ 'objective': None,
+ 'random_state': 0,
+ 'reg_alpha': 0.0,
+ 'reg_lambda': 0.0,
+ 'silent': True,
+ 'subsample': 1.0,
+ 'subsample_for_bin': 200000,
+ 'subsample_freq': 0,
+ 'num_leaves': 50,
+ 'min_child_weight': 1,
+ 'max_depth': -1,
+ 'learning_rate': 0.1,
+ 'min_data_in_bin': 1,
+ 'min_data': 1
+}
 
-# In[19]:
+# SNR
+lgbm_params = {
+    'boosting_type': 'gbdt',
+ 'class_weight': None,
+ 'colsample_bytree': 1.0,
+ 'importance_type': 'split',
+ 'min_child_samples': 20,
+ 'min_split_gain': 0.0,
+ 'n_estimators': 100,
+ 'objective': None,
+ 'random_state': 0,
+ 'reg_alpha': 0.0,
+ 'reg_lambda': 0.0,
+ 'silent': True,
+ 'subsample': 1.0,
+ 'subsample_for_bin': 200000,
+ 'subsample_freq': 0,
+ 'num_leaves': 25,
+ 'min_child_weight': 0,
+ 'max_depth': 0,
+ 'learning_rate': 0.09066637800400942,
+ 'min_data_in_bin': 1,
+ 'min_data': 1
+}
+
+
+# In[125]:
 
 
 lgbm_model = LGBMRegressor(**lgbm_params)
@@ -332,7 +446,7 @@ print(rmse)
 
 # # Experiment 
 
-# In[20]:
+# In[29]:
 
 
 def reset_model(model_name, params=None) :
@@ -342,7 +456,7 @@ def reset_model(model_name, params=None) :
         return LGBMRegressor(**lgbm_params) if params is None else LGBMRegressor(**params)
 
 
-# In[34]:
+# In[ ]:
 
 
 model_name = 'lgbm'
@@ -350,11 +464,10 @@ model_name = 'lgbm'
 
 # # Baseline 
 
-# In[35]:
+# In[ ]:
 
 
-model = LGBMRegressor(**lgbm_params)
-# model = XGBRegressor(**xgboost_params)
+model = reset_model(model_name)
 model.fit(x_train, y_train)
 
 for s in demo_config[6] :
@@ -369,12 +482,11 @@ pickle.dump(model, open("db/%s_%s_baseline.pickle.dat" % (pred_col, model_name),
 
 # # Independent 
 
-# In[36]:
+# In[ ]:
 
 
 for s in demo_config[6] :
-    model = LGBMRegressor(**lgbm_params)
-    model = XGBRegressor(**xgboost_params)
+    model = reset_model(model_name)
     model.fit(x_train_dict[(6, s)], y_train_dict[(6, s)])
 
     y_pred = model.predict(x_test_dict[(6, s)])
@@ -388,7 +500,7 @@ for s in demo_config[6] :
 
 # # Transfer
 
-# In[37]:
+# In[ ]:
 
 
 for s in demo_config[6] :
@@ -397,8 +509,7 @@ for s in demo_config[6] :
     curr_x_test = df_data[df_data.set==s].drop(exclude_train_col, axis=1)
     curr_y_test = df_data[df_data.set==s][pred_col].values.tolist()
 
-    model = LGBMRegressor(**lgbm_params)
-    model = XGBRegressor(**xgboost_params)
+    model = reset_model(model_name)
     model.fit(curr_x_train, curr_y_train)
 
     y_pred = model.predict(curr_x_test)
@@ -412,7 +523,7 @@ for s in demo_config[6] :
 
 # # Generate Predicted Coordinate 
 
-# In[25]:
+# In[78]:
 
 
 x_cut = 50  
@@ -435,7 +546,7 @@ all_x_pci = pd.DataFrame({'location_x':x_coord_list, 'location_y':y_coord_list})
 
 # # Bayesian Opt - Exploration - Partial Point
 
-# In[26]:
+# In[79]:
 
 
 from matplotlib import gridspec
@@ -502,7 +613,7 @@ def get_params_range(model_name) :
               'num_leaves': (5, 50)}
 
 
-# In[27]:
+# In[36]:
 
 
 random = 0
@@ -518,7 +629,7 @@ gp_params = {"alpha": 1e-5, "n_restarts_optimizer": 3, 'random_state':random}
 bo2.maximize(init_points=2, n_iter=iterations, acq="ei", xi=0.1, **gp_params)
 
 
-# In[28]:
+# In[37]:
 
 
 random = 3
@@ -532,12 +643,6 @@ t.bayes_opt = bo3
 iterations = 100
 gp_params = {"alpha": 1e-5, "n_restarts_optimizer": 3, 'random_state':random}
 bo3.maximize(init_points=2, n_iter=iterations, acq="ei", xi=0.1, **gp_params)
-
-
-# In[44]:
-
-
-model_name = 'lgbm'
 
 
 # In[ ]:
@@ -605,9 +710,67 @@ for x in list(temporary[:, 2]) :
     print(x)
 
 
-# In[31]:
+# In[ ]:
 
 
-for x in list(temporary[:, 0]) :
+acc_dict = {}
+for set_val in demo_config[6] :
+    curr_df_data = df_data[df_data.set == set_val]
+    iterations = int(0.2*len(curr_df_data))
+
+    temp = curr_df_data.copy()
+    temp2 = pd.DataFrame(columns=curr_df_data.columns)
+    for x in bo3.X[:iterations] :
+        distance = lambda d: math.hypot(abs(x[0]-d[0]), abs(x[1]-d[1]))
+        temp["d"] = temp.apply(distance, axis=1)
+        temp2 = temp2.append(temp.loc[temp.d.idxmin()])
+
+#     trouble_col = ['PCI', 'Power_37', 'Power_38', 'Power_39', 'Power_40', 'Power_41', 'Power_42', 'set']
+#     temp2 = temp2.astype({x:'int' for x in trouble_col})
+    temp3 = curr_df_data[~curr_df_data.index.isin(temp2.index)]
+    temp2 = curr_df_data[~curr_df_data.index.isin(temp3.index)]
+
+#     curr_x_train = temp2.drop(["d"] + exclude_train_col, axis=1)
+    curr_x_train = temp2.drop(exclude_train_col, axis=1)
+
+    curr_y_train = np.array(temp2[pred_col].values.tolist())
+    curr_x_test = temp3.drop(exclude_train_col, axis=1)
+    curr_y_test = np.array(temp3[pred_col].values.tolist())
+    print(set_val, len(curr_x_train), len(curr_x_test))
+
+#     plot_gp(bo2, all_x_pci.values, curr_x_train, curr_y_train, set_val, "xgboost")
+    
+    params = {'learning_rate' : 0.03, 'max_depth' : 9, 'min_child_weight':1, 'gamma':4.2522, 
+              'max_delta_weight':11, 'random_state' :random}
+    params = {'learning_rate' : 0.03, 'max_depth' : 9, 'min_child_weight':1, 'gamma':1, 
+              'max_delta_weight':11, 'random_state' :random}
+
+    t = get_target(model_name, curr_x_train, curr_y_train, curr_x_test, curr_y_test)
+    bo = BayesianOptimization(t.evaluate, 
+                              get_params_range(model_name),
+                              random_state = random, 
+                              verbose=0)
+
+    bo.maximize(init_points=5, n_iter=3)
+    print(bo.res['max']['max_params'])
+    params = t.clean_param(bo.res['max']['max_params'])
+    
+    model = reset_model(model_name, params)
+    model.fit(curr_x_train, curr_y_train)
+
+    y_pred = model.predict(curr_x_test)
+    predictions = [round(value) for value in y_pred]
+    mse = metric.mean_squared_error(curr_y_test, predictions)
+    rmse = math.sqrt(mse)
+    print(rmse)
+    acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), rmse]
+    pickle.dump(model, open("db/%s_%s_bayesian_set_%s.pickle.dat" % (pred_col, model_name, s), "wb"))
+
+
+# In[ ]:
+
+
+temporary = np.array([x for x in acc_dict.values()])
+for x in list(temporary[:, 2]) :
     print(x)
 
