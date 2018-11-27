@@ -32,36 +32,45 @@ df_all_data = get_data(config=demo_config, pure=True, refresh=False)
 print(len(df_all_data))
 
 
-# In[107]:
+# In[11]:
 
 
 prediction_columns = ["RSRP", "RSRQ", "SNR"]
-pred_index = 2
+pred_index = 0
 pred_col = prediction_columns[pred_index]
 
 
-# In[112]:
+# In[12]:
 
 
 dropped_columns = [c for c in df_all_data if "beam" in c] + prediction_columns[pred_index+1:]
 df_data = df_all_data.drop(dropped_columns, axis=1)
 df_data = df_data[df_data["PCI"].isin(whitelist_PCI)]
+print(len(df_data))
 
-group = ['location_x', 'location_y', 'PCI'] + prediction_columns[:pred_index]
-group = ['location_x', 'location_y', 'PCI'] 
-df_data[pred_col] = merge_agg(df_data, group, pred_col, ['mean'])['mean']
+for i in range(pred_index+1):
+    group = ['location_x', 'location_y', 'PCI', 'priority', 'set']
+    temp = df_data[group + [prediction_columns[i]]]
+    df_data[prediction_columns[i]] = merge_agg(temp, group, prediction_columns[i], ['mean'])['mean']
+    
 df_data = df_data.drop_duplicates()
 df_data = df_data.dropna()
-len(df_data)
+print(len(df_data))
 
 
-# In[113]:
+# In[13]:
+
+
+len(df_data.columns)
+
+
+# In[14]:
 
 
 df_data
 
 
-# In[114]:
+# In[108]:
 
 
 data_train, data_test = pd.DataFrame(), pd.DataFrame()
@@ -76,7 +85,7 @@ for p in demo_config :
 print(len(data_train), len(data_test))
 
 
-# In[115]:
+# In[109]:
 
 
 exclude_train_col = ['priority', pred_col]
@@ -97,7 +106,7 @@ for p in demo_config :
 
 # # XGBoost  
 
-# In[7]:
+# In[10]:
 
 
 from xgboost import XGBRegressor
@@ -106,7 +115,7 @@ from bayes_opt import BayesianOptimization
 import sklearn.metrics as metric
 
 
-# In[15]:
+# In[110]:
 
 
 class xgboost_target :
@@ -154,69 +163,88 @@ class xgboost_target :
         return -1*rmse
 
 
-# In[116]:
+# In[111]:
 
 
-xt = xgboost_target(x_train, y_train, x_test, y_test)
-xgbBO = BayesianOptimization(xt.evaluate, {'learning_rate': (1, 12),
-                                            'booster' : (1, 3),
-                                            'gamma' : (0, 50),
-                                            'max_depth': (3, 12),
-                                            'min_child_weight': (1, 1),
-                                            'max_delta_weight': (1, 20),
-                                            'rate_drop': (0, 1)},
-                            random_state = 1)
+# xt = xgboost_target(x_train, y_train, x_test, y_test)
+# xgbBO = BayesianOptimization(xt.evaluate, {'learning_rate': (1, 12),
+#                                             'booster' : (1, 3),
+#                                             'gamma' : (0, 50),
+#                                             'max_depth': (3, 12),
+#                                             'min_child_weight': (1, 1),
+#                                             'max_delta_weight': (1, 20),
+#                                             'rate_drop': (0, 1)},
+#                             random_state = 1)
 
-xgbBO.maximize(init_points=10, n_iter=5)
-
-
-# In[117]:
+# xgbBO.maximize(init_points=10, n_iter=5)
 
 
-params = xt.clean_param(xgbBO.res['max']['max_params'])
-xgb_model = XGBRegressor(**params)
-xgb_model.fit(x_train, y_train)
-
-y_pred = xgb_model.predict(x_test)
-predictions = [round(value) for value in y_pred]
-mse = metric.mean_squared_error(y_test, predictions)
-rmse = math.sqrt(mse)
-print(rmse)
+# In[112]:
 
 
-# In[118]:
+# params = xt.clean_param(xgbBO.res['max']['max_params'])
+# xgb_model = XGBRegressor(**params)
+# xgb_model.fit(x_train, y_train)
+
+# y_pred = xgb_model.predict(x_test)
+# predictions = [round(value) for value in y_pred]
+# mse = metric.mean_squared_error(y_test, predictions)
+# rmse = math.sqrt(mse)
+# print(rmse)
 
 
-params
+# In[113]:
 
 
-# In[122]:
+# params
 
 
-# RSRP
-xgboost_params = {'base_score': 0.5,
-                 'booster': 'gbtree',
-                 'missing': None,
-                 'n_estimators': 100,
-                 'n_jobs': 1,
-                 'random_state': 1,
-                 'reg_lambda': 1,
-                 'alpha': 0,
-                 'scale_pos_weight': 1,
-                 'subsample': 1,
-                 'colsample_bytree': 1,
-                 'colsample_bylevel': 1,
-                 'objective': 'reg:linear',
-                 'learning_rate': 0.11635799774722211,
-                 'gamma': 41.91834131395615,
-                 'max_depth': 12,
-                 'min_child_weight': 1,
-                 'max_delta_weight': 18,
-                 'rate_drop': 0.9831392947354712}
+# In[114]:
 
+
+xgboost_params_list = [
+# RSRP,
+{'base_score': 0.5,
+'booster': 'gbtree',
+'missing': None,
+'n_estimators': 100,
+'n_jobs': 1,
+'random_state': 1,
+'reg_lambda': 1,
+'alpha': 0,
+'scale_pos_weight': 1,
+'subsample': 1,
+'colsample_bytree': 1,
+'colsample_bylevel': 1,
+'objective': 'reg:linear',
+'learning_rate': 0.06926984074036927,
+'gamma': 43.90712517147065,
+'max_depth': 9,
+'min_child_weight': 1,
+'max_delta_weight': 14,
+'rate_drop': 0.5865550405019929},
 # RSRQ
-xgboost_params = {
-    'base_score': 0.5,
+{'base_score': 0.5,
+ 'booster': 'dart',
+ 'missing': None,
+ 'n_estimators': 100,
+ 'n_jobs': 1,
+ 'random_state': 1,
+ 'reg_lambda': 1,
+ 'alpha': 0,
+ 'scale_pos_weight': 1,
+ 'subsample': 1,
+ 'colsample_bytree': 1,
+ 'colsample_bylevel': 1,
+ 'objective': 'reg:linear',
+ 'learning_rate': 0.12,
+ 'gamma': 0.0,
+ 'max_depth': 3,
+ 'min_child_weight': 1,
+ 'max_delta_weight': 20,
+ 'rate_drop': 0.0},
+# SNR
+{'base_score': 0.5,
  'booster': 'dart',
  'missing': None,
  'n_estimators': 100,
@@ -234,34 +262,13 @@ xgboost_params = {
  'max_depth': 12,
  'min_child_weight': 1,
  'max_delta_weight': 20,
- 'rate_drop': 0.0
-}
+ 'rate_drop': 0.0}
+]
 
-# SNR
-xgboost_params = {
-    'base_score': 0.5,
- 'booster': 'gbtree',
- 'missing': None,
- 'n_estimators': 100,
- 'n_jobs': 1,
- 'random_state': 1,
- 'reg_lambda': 1,
- 'alpha': 0,
- 'scale_pos_weight': 1,
- 'subsample': 1,
- 'colsample_bytree': 1,
- 'colsample_bylevel': 1,
- 'objective': 'reg:linear',
- 'learning_rate': 0.11344922576561457,
- 'gamma': 2.0300576525340643,
- 'max_depth': 3,
- 'min_child_weight': 1,
- 'max_delta_weight': 20,
- 'rate_drop': 1.0
-}
+xgboost_params = xgboost_params_list[pred_index]
 
 
-# In[123]:
+# In[115]:
 
 
 xgb_model = XGBRegressor(**xgboost_params)
@@ -276,7 +283,7 @@ print(rmse)
 
 # # LGBM 
 
-# In[22]:
+# In[69]:
 
 
 import lightgbm
@@ -284,7 +291,7 @@ import lightgbm as lgb
 from lightgbm import LGBMRegressor
 
 
-# In[23]:
+# In[116]:
 
 
 class lgbm_target :
@@ -325,65 +332,44 @@ class lgbm_target :
         return -1*rmse
 
 
-# In[119]:
-
-
-lt = lgbm_target(x_train, y_train, x_test, y_test)
-lgbmBO = BayesianOptimization(lt.evaluate, {'min_child_weight': (0.01, 1),
-                                              'learning_rate': (1, 10),
-                                              'max_depth': (-1, 15),
-                                              'num_leaves': (5, 50)}, 
-                             random_state=3)
-
-lgbmBO.maximize(init_points=3, n_iter=10)
-
-
-# In[120]:
-
-
-params = lt.clean_param(lgbmBO.res['max']['max_params'])
-lgbm_model = LGBMRegressor(**params)
-lgbm_model.fit(x_train, y_train)
-y_pred = lgbm_model.predict(x_test)
-predictions = [round(value) for value in y_pred]
-mse = metric.mean_squared_error(y_test, predictions)
-rmse = math.sqrt(mse)
-print(rmse)
-
-
-# In[121]:
-
-
-params
-
-
 # In[124]:
 
 
-# RSRP
-lgbm_params = {'boosting_type': 'gbdt',
-                 'class_weight': None,
-                 'colsample_bytree': 1.0,
-                 'importance_type': 'split',
-                 'min_child_samples': 20,
-                 'min_split_gain': 0.0,
-                 'n_estimators': 100,
-                 'objective': None,
-                 'random_state': 0,
-                 'reg_alpha': 0.0,
-                 'reg_lambda': 0.0,
-                 'silent': True,
-                 'subsample': 1.0,
-                 'subsample_for_bin': 200000,
-                 'subsample_freq': 0,
-                 'num_leaves': 50,
-                 'min_child_weight': 1,
-                 'max_depth': -1,
-                 'learning_rate': 0.1}
+# lt = lgbm_target(x_train, y_train, x_test, y_test)
+# lgbmBO = BayesianOptimization(lt.evaluate, {'min_child_weight': (0.01, 1),
+#                                               'learning_rate': (1, 10),
+#                                               'max_depth': (-1, 15),
+#                                               'num_leaves': (5, 50)}, 
+#                              random_state=3)
 
-# RSRQ
-lgbm_params = {
-    'boosting_type': 'gbdt',
+# lgbmBO.maximize(init_points=20, n_iter=5)
+
+
+# In[125]:
+
+
+# params = lt.clean_param(lgbmBO.res['max']['max_params'])
+# lgbm_model = LGBMRegressor(**params)
+# lgbm_model.fit(x_train, y_train)
+# y_pred = lgbm_model.predict(x_test)
+# predictions = [round(value) for value in y_pred]
+# mse = metric.mean_squared_error(y_test, predictions)
+# rmse = math.sqrt(mse)
+# print(rmse)
+
+
+# In[126]:
+
+
+# params
+
+
+# In[127]:
+
+
+lgbm_params_list = [
+# RSRP
+{'boosting_type': 'gbdt',
  'class_weight': None,
  'colsample_bytree': 1.0,
  'importance_type': 'split',
@@ -399,16 +385,13 @@ lgbm_params = {
  'subsample_for_bin': 200000,
  'subsample_freq': 0,
  'num_leaves': 50,
- 'min_child_weight': 1,
+ 'min_child_weight': 0,
  'max_depth': -1,
  'learning_rate': 0.1,
  'min_data_in_bin': 1,
- 'min_data': 1
-}
-
-# SNR
-lgbm_params = {
-    'boosting_type': 'gbdt',
+ 'min_data': 1},
+# RSRQ
+{'boosting_type': 'gbdt',
  'class_weight': None,
  'colsample_bytree': 1.0,
  'importance_type': 'split',
@@ -423,16 +406,40 @@ lgbm_params = {
  'subsample': 1.0,
  'subsample_for_bin': 200000,
  'subsample_freq': 0,
- 'num_leaves': 25,
+ 'num_leaves': 19,
  'min_child_weight': 0,
- 'max_depth': 0,
- 'learning_rate': 0.09066637800400942,
+ 'max_depth': 5,
+ 'learning_rate': 0.0995815310228581,
  'min_data_in_bin': 1,
- 'min_data': 1
-}
+ 'min_data': 1},
+# SNR
+{'boosting_type': 'gbdt',
+ 'class_weight': None,
+ 'colsample_bytree': 1.0,
+ 'importance_type': 'split',
+ 'min_child_samples': 20,
+ 'min_split_gain': 0.0,
+ 'n_estimators': 100,
+ 'objective': None,
+ 'random_state': 0,
+ 'reg_alpha': 0.0,
+ 'reg_lambda': 0.0,
+ 'silent': True,
+ 'subsample': 1.0,
+ 'subsample_for_bin': 200000,
+ 'subsample_freq': 0,
+ 'num_leaves': 32,
+ 'min_child_weight': 0,
+ 'max_depth': 11,
+ 'learning_rate': 0.1,
+ 'min_data_in_bin': 1,
+ 'min_data': 1}
+]
+
+lgbm_params = lgbm_params_list[pred_index]
 
 
-# In[125]:
+# In[128]:
 
 
 lgbm_model = LGBMRegressor(**lgbm_params)
@@ -444,9 +451,16 @@ rmse = math.sqrt(mse)
 print(rmse)
 
 
+# In[129]:
+
+
+y_diff = np.abs(y_pred - y_test)
+len(np.where(y_diff<10)[0])/len(y_test)
+
+
 # # Experiment 
 
-# In[29]:
+# In[74]:
 
 
 def reset_model(model_name, params=None) :
@@ -456,7 +470,7 @@ def reset_model(model_name, params=None) :
         return LGBMRegressor(**lgbm_params) if params is None else LGBMRegressor(**params)
 
 
-# In[ ]:
+# In[140]:
 
 
 model_name = 'lgbm'
@@ -464,7 +478,7 @@ model_name = 'lgbm'
 
 # # Baseline 
 
-# In[ ]:
+# In[141]:
 
 
 model = reset_model(model_name)
@@ -482,7 +496,7 @@ pickle.dump(model, open("db/%s_%s_baseline.pickle.dat" % (pred_col, model_name),
 
 # # Independent 
 
-# In[ ]:
+# In[142]:
 
 
 for s in demo_config[6] :
@@ -500,7 +514,7 @@ for s in demo_config[6] :
 
 # # Transfer
 
-# In[ ]:
+# In[143]:
 
 
 for s in demo_config[6] :
@@ -523,7 +537,7 @@ for s in demo_config[6] :
 
 # # Generate Predicted Coordinate 
 
-# In[78]:
+# In[30]:
 
 
 x_cut = 50  
@@ -546,7 +560,7 @@ all_x_pci = pd.DataFrame({'location_x':x_coord_list, 'location_y':y_coord_list})
 
 # # Bayesian Opt - Exploration - Partial Point
 
-# In[79]:
+# In[31]:
 
 
 from matplotlib import gridspec
@@ -613,7 +627,7 @@ def get_params_range(model_name) :
               'num_leaves': (5, 50)}
 
 
-# In[36]:
+# In[32]:
 
 
 random = 0
@@ -629,23 +643,7 @@ gp_params = {"alpha": 1e-5, "n_restarts_optimizer": 3, 'random_state':random}
 bo2.maximize(init_points=2, n_iter=iterations, acq="ei", xi=0.1, **gp_params)
 
 
-# In[37]:
-
-
-random = 3
-t = target()
-bo3 = BayesianOptimization(t.optimize, {'x': (min(x_coord_list), max(x_coord_list)), 
-                                        'y': (min(y_coord_list), max(y_coord_list))},
-                           random_state=random, 
-                           verbose=1)
-t.bayes_opt = bo3
-
-iterations = 100
-gp_params = {"alpha": 1e-5, "n_restarts_optimizer": 3, 'random_state':random}
-bo3.maximize(init_points=2, n_iter=iterations, acq="ei", xi=0.1, **gp_params)
-
-
-# In[ ]:
+# In[145]:
 
 
 acc_dict = {}
@@ -702,7 +700,7 @@ for set_val in demo_config[6] :
     pickle.dump(model, open("db/%s_%s_bayesian_set_%s.pickle.dat" % (pred_col, model_name, s), "wb"))
 
 
-# In[ ]:
+# In[146]:
 
 
 temporary = np.array([x for x in acc_dict.values()])
@@ -710,67 +708,16 @@ for x in list(temporary[:, 2]) :
     print(x)
 
 
-# In[ ]:
+# In[147]:
 
 
-acc_dict = {}
-for set_val in demo_config[6] :
-    curr_df_data = df_data[df_data.set == set_val]
-    iterations = int(0.2*len(curr_df_data))
-
-    temp = curr_df_data.copy()
-    temp2 = pd.DataFrame(columns=curr_df_data.columns)
-    for x in bo3.X[:iterations] :
-        distance = lambda d: math.hypot(abs(x[0]-d[0]), abs(x[1]-d[1]))
-        temp["d"] = temp.apply(distance, axis=1)
-        temp2 = temp2.append(temp.loc[temp.d.idxmin()])
-
-#     trouble_col = ['PCI', 'Power_37', 'Power_38', 'Power_39', 'Power_40', 'Power_41', 'Power_42', 'set']
-#     temp2 = temp2.astype({x:'int' for x in trouble_col})
-    temp3 = curr_df_data[~curr_df_data.index.isin(temp2.index)]
-    temp2 = curr_df_data[~curr_df_data.index.isin(temp3.index)]
-
-#     curr_x_train = temp2.drop(["d"] + exclude_train_col, axis=1)
-    curr_x_train = temp2.drop(exclude_train_col, axis=1)
-
-    curr_y_train = np.array(temp2[pred_col].values.tolist())
-    curr_x_test = temp3.drop(exclude_train_col, axis=1)
-    curr_y_test = np.array(temp3[pred_col].values.tolist())
-    print(set_val, len(curr_x_train), len(curr_x_test))
-
-#     plot_gp(bo2, all_x_pci.values, curr_x_train, curr_y_train, set_val, "xgboost")
-    
-    params = {'learning_rate' : 0.03, 'max_depth' : 9, 'min_child_weight':1, 'gamma':4.2522, 
-              'max_delta_weight':11, 'random_state' :random}
-    params = {'learning_rate' : 0.03, 'max_depth' : 9, 'min_child_weight':1, 'gamma':1, 
-              'max_delta_weight':11, 'random_state' :random}
-
-    t = get_target(model_name, curr_x_train, curr_y_train, curr_x_test, curr_y_test)
-    bo = BayesianOptimization(t.evaluate, 
-                              get_params_range(model_name),
-                              random_state = random, 
-                              verbose=0)
-
-    bo.maximize(init_points=5, n_iter=3)
-    print(bo.res['max']['max_params'])
-    params = t.clean_param(bo.res['max']['max_params'])
-    
-    model = reset_model(model_name, params)
-    model.fit(curr_x_train, curr_y_train)
-
-    y_pred = model.predict(curr_x_test)
-    predictions = [round(value) for value in y_pred]
-    mse = metric.mean_squared_error(curr_y_test, predictions)
-    rmse = math.sqrt(mse)
-    print(rmse)
-    acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), rmse]
-    pickle.dump(model, open("db/%s_%s_bayesian_set_%s.pickle.dat" % (pred_col, model_name, s), "wb"))
+for x in list(temporary[:, 0]) :
+    print(x)
 
 
-# In[ ]:
+# In[148]:
 
 
-temporary = np.array([x for x in acc_dict.values()])
-for x in list(temporary[:, 2]) :
+for x in list(temporary[:, 1]) :
     print(x)
 
