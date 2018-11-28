@@ -87,7 +87,6 @@ for prio, set_val in all_x_pci_dict :
         y_pred = model.predict(all_x_pci)
         path = "../results/predicted/pci/%s/priority_%d_set_%d.png" % (ml_name, prio, set_val)
         a = visualize_pci_heatmap(background, x_coord_view, y_coord_view, y_pred, path)
-        save_to_pickle(all_y_pci_dict[m], "predicted_pci_" + m)
     else :
         y_pred=model.predict_proba(all_x_pci)
         pci_interference = np.max(y_pred, axis=1)
