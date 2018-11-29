@@ -32,15 +32,15 @@ df_all_data = get_data(config=demo_config, pure=True, refresh=False)
 print(len(df_all_data))
 
 
-# In[11]:
+# In[3]:
 
 
 prediction_columns = ["RSRP", "RSRQ", "SNR"]
-pred_index = 0
+pred_index = 1
 pred_col = prediction_columns[pred_index]
 
 
-# In[12]:
+# In[4]:
 
 
 dropped_columns = [c for c in df_all_data if "beam" in c] + prediction_columns[pred_index+1:]
@@ -51,6 +51,9 @@ print(len(df_data))
 for i in range(pred_index+1):
     group = ['location_x', 'location_y', 'PCI', 'priority', 'set']
     temp = df_data[group + [prediction_columns[i]]]
+    df_data['count'] = merge_agg(temp, group, prediction_columns[i], ['count'])['count']
+    idx = df_data.groupby(group)['count'].transform(max) == df_data['count']
+    df_data = df_data[idx]
     df_data[prediction_columns[i]] = merge_agg(temp, group, prediction_columns[i], ['mean'])['mean']
     
 df_data = df_data.drop_duplicates()
@@ -58,19 +61,13 @@ df_data = df_data.dropna()
 print(len(df_data))
 
 
-# In[13]:
-
-
-len(df_data.columns)
-
-
-# In[14]:
+# In[5]:
 
 
 df_data
 
 
-# In[108]:
+# In[6]:
 
 
 data_train, data_test = pd.DataFrame(), pd.DataFrame()
@@ -85,7 +82,7 @@ for p in demo_config :
 print(len(data_train), len(data_test))
 
 
-# In[109]:
+# In[7]:
 
 
 exclude_train_col = ['priority', pred_col]
@@ -106,7 +103,7 @@ for p in demo_config :
 
 # # XGBoost  
 
-# In[10]:
+# In[8]:
 
 
 from xgboost import XGBRegressor
@@ -115,7 +112,7 @@ from bayes_opt import BayesianOptimization
 import sklearn.metrics as metric
 
 
-# In[110]:
+# In[9]:
 
 
 class xgboost_target :
@@ -163,7 +160,7 @@ class xgboost_target :
         return -1*rmse
 
 
-# In[111]:
+# In[10]:
 
 
 # xt = xgboost_target(x_train, y_train, x_test, y_test)
@@ -179,7 +176,7 @@ class xgboost_target :
 # xgbBO.maximize(init_points=10, n_iter=5)
 
 
-# In[112]:
+# In[11]:
 
 
 # params = xt.clean_param(xgbBO.res['max']['max_params'])
@@ -193,13 +190,13 @@ class xgboost_target :
 # print(rmse)
 
 
-# In[113]:
+# In[12]:
 
 
 # params
 
 
-# In[114]:
+# In[13]:
 
 
 xgboost_params_list = [
@@ -268,7 +265,7 @@ xgboost_params_list = [
 xgboost_params = xgboost_params_list[pred_index]
 
 
-# In[115]:
+# In[14]:
 
 
 xgb_model = XGBRegressor(**xgboost_params)
@@ -283,7 +280,7 @@ print(rmse)
 
 # # LGBM 
 
-# In[69]:
+# In[15]:
 
 
 import lightgbm
@@ -291,7 +288,7 @@ import lightgbm as lgb
 from lightgbm import LGBMRegressor
 
 
-# In[116]:
+# In[16]:
 
 
 class lgbm_target :
@@ -332,7 +329,7 @@ class lgbm_target :
         return -1*rmse
 
 
-# In[124]:
+# In[17]:
 
 
 # lt = lgbm_target(x_train, y_train, x_test, y_test)
@@ -345,7 +342,7 @@ class lgbm_target :
 # lgbmBO.maximize(init_points=20, n_iter=5)
 
 
-# In[125]:
+# In[18]:
 
 
 # params = lt.clean_param(lgbmBO.res['max']['max_params'])
@@ -358,13 +355,13 @@ class lgbm_target :
 # print(rmse)
 
 
-# In[126]:
+# In[19]:
 
 
 # params
 
 
-# In[127]:
+# In[20]:
 
 
 lgbm_params_list = [
@@ -439,7 +436,7 @@ lgbm_params_list = [
 lgbm_params = lgbm_params_list[pred_index]
 
 
-# In[128]:
+# In[21]:
 
 
 lgbm_model = LGBMRegressor(**lgbm_params)
@@ -451,7 +448,7 @@ rmse = math.sqrt(mse)
 print(rmse)
 
 
-# In[129]:
+# In[22]:
 
 
 y_diff = np.abs(y_pred - y_test)
@@ -460,7 +457,7 @@ len(np.where(y_diff<10)[0])/len(y_test)
 
 # # Experiment 
 
-# In[74]:
+# In[23]:
 
 
 def reset_model(model_name, params=None) :
@@ -470,7 +467,7 @@ def reset_model(model_name, params=None) :
         return LGBMRegressor(**lgbm_params) if params is None else LGBMRegressor(**params)
 
 
-# In[140]:
+# In[24]:
 
 
 model_name = 'lgbm'
@@ -478,7 +475,7 @@ model_name = 'lgbm'
 
 # # Baseline 
 
-# In[141]:
+# In[25]:
 
 
 model = reset_model(model_name)
@@ -496,7 +493,7 @@ pickle.dump(model, open("db/%s_%s_baseline.pickle.dat" % (pred_col, model_name),
 
 # # Independent 
 
-# In[142]:
+# In[26]:
 
 
 for s in demo_config[6] :
@@ -514,7 +511,7 @@ for s in demo_config[6] :
 
 # # Transfer
 
-# In[143]:
+# In[27]:
 
 
 for s in demo_config[6] :
@@ -537,7 +534,7 @@ for s in demo_config[6] :
 
 # # Generate Predicted Coordinate 
 
-# In[30]:
+# In[28]:
 
 
 x_cut = 50  
@@ -560,7 +557,7 @@ all_x_pci = pd.DataFrame({'location_x':x_coord_list, 'location_y':y_coord_list})
 
 # # Bayesian Opt - Exploration - Partial Point
 
-# In[31]:
+# In[29]:
 
 
 from matplotlib import gridspec
@@ -627,7 +624,7 @@ def get_params_range(model_name) :
               'num_leaves': (5, 50)}
 
 
-# In[32]:
+# In[30]:
 
 
 random = 0
@@ -643,7 +640,7 @@ gp_params = {"alpha": 1e-5, "n_restarts_optimizer": 3, 'random_state':random}
 bo2.maximize(init_points=2, n_iter=iterations, acq="ei", xi=0.1, **gp_params)
 
 
-# In[145]:
+# In[31]:
 
 
 acc_dict = {}
@@ -700,7 +697,7 @@ for set_val in demo_config[6] :
     pickle.dump(model, open("db/%s_%s_bayesian_set_%s.pickle.dat" % (pred_col, model_name, s), "wb"))
 
 
-# In[146]:
+# In[32]:
 
 
 temporary = np.array([x for x in acc_dict.values()])
@@ -708,14 +705,14 @@ for x in list(temporary[:, 2]) :
     print(x)
 
 
-# In[147]:
+# In[33]:
 
 
 for x in list(temporary[:, 0]) :
     print(x)
 
 
-# In[148]:
+# In[34]:
 
 
 for x in list(temporary[:, 1]) :

@@ -45,82 +45,61 @@ background = get_map_image(black_white=True)
 x_coord_view = [lon for lon in x_coord_list]
 y_coord_view = [lat for lat in y_coord_list]
 
-generated_function = [generate_predicted_data_pci, 
-                      generate_predicted_data_rsrp, 
-                      generate_predicted_data_rsrq, 
-                      generate_predicted_data_snr]
-
 all_x_pci = pd.DataFrame({'location_x':x_coord_list, 'location_y':y_coord_list})
 
-normalize_rsrq = matplotlib.colors.Normalize(vmin=-9, vmax=-5)
-normalize_snr = matplotlib.colors.Normalize(vmin=0, vmax=30)
+
+# # Predict
+
+# In[8]:
 
 
-# # Predict 
-
-# In[3]:
-
-
-prediction_columns = ["PCI", "RSRP", "RSRQ", "SNR"]
-# min 1, max 3
-pred_index = 3
-set_val = 26
-base_model = 'xgboost'
-ml_name = 'lgbm'
-training_method = 'baseline'  
-training_method = 'independent_set_%d' % (set_val) 
-training_method = 'transfer_except_%d' % (set_val) 
+s = 1
+config = {6 : [s]}
+ml_name = 'xgboost'
+training_method = 'baseline' #use set 
+# training_method = 'independent_set_%d' % (s) 
+# training_method = 'transfer_except_%d' % (s)  
 
 
-# In[4]:
+# In[9]:
 
 
-config = {6 : [set_val]}
-pred_col = prediction_columns[pred_index]
-model_name = 'db/%s_%s_%s' % (pred_col, ml_name, training_method)
+model_name = 'db/%s_%s_%s' % ('PCI', ml_name, training_method)
 model = pickle.load(open(model_name + ".pickle.dat", "rb"))
-normalized = [None, None, normalize_rsrq, normalize_snr]
+all_x_pci_dict = generate_predicted_data_pci(config, all_x_pci, refresh=True)
+
+beam_columns = [c for c in all_x_pci_dict[(6, s)] if "beam" in c]
+all_x_pci_dict = {k:all_x_pci_dict[k].drop(beam_columns, axis=1) for k in all_x_pci_dict}
+
+if 'transfer' in training_method :
+    all_x_pci_dict = {k:all_x_pci_dict[k].drop(['set'], axis=1) for k in all_x_pci_dict}
 
 
-# In[5]:
+# In[10]:
 
 
-for s in config[6] :
-    all_x_data = add_features(pd.DataFrame(all_x_pci), 6, s)
-    beam_columns = [c for c in all_x_data if "beam" in c]
-    all_x_data = all_x_data.drop(beam_columns, axis=1)
-    
-    if 'transfer' not in training_method:
-        all_x_data['set'] = set_val
-    
-    for i in range(pred_index+1) :
-        
-        if i == 1 :
-            all_x_data['set'] = set_val
-        
-        model_name = 'db/%s_%s_%s' % (prediction_columns[i], ml_name, training_method)
-        model = pickle.load(open(model_name + ".pickle.dat", "rb"))
-        all_x_data[prediction_columns[i]] = model.predict(all_x_data)
-        
-        if i == 0 :
-            all_x_data["PCI"] = all_x_data["PCI"].apply(lambda x : pci_decode[x])
-        
+proba = False
 
 
-# In[6]:
+# In[11]:
 
 
-all_y = all_x_data[prediction_columns[pred_index]]
+for prio, set_val in all_x_pci_dict :
+    all_x_pci = all_x_pci_dict[(prio, set_val)]
+    if not proba :
+        y_pred = model.predict(all_x_pci)
+        path = "../results/predicted/pci/%s/priority_%d_set_%d.png" % (ml_name, prio, set_val)
+        a = visualize_pci_heatmap(background, x_coord_view, y_coord_view, y_pred, path)
+    else :
+        y_pred=model.predict_proba(all_x_pci)
+        pci_interference = np.max(y_pred, axis=1)
+        normalize_pci_interference = matplotlib.colors.Normalize(vmin=min(pci_interference), 
+                                                                 vmax=max(pci_interference))
 
-if normalized[pred_index] is None :
-    normalize = matplotlib.colors.Normalize(vmin=min(all_y), vmax=max(all_y))
-else :
-    normalize = normalized[pred_index]
-    
-data_pred = [cmap(normalize(value))[:3] for value in all_y]
-data_pred = [[int(x*255) for x in value] for value in data_pred]
-path = "../results/predicted/rsrp/%s/priority_%d_set_%d.png" % (ml_name, 6, set_val)
-a=visualize_all_location_heatmap(get_map_image(black_white=True), x_coord_view, y_coord_view, data_pred, 
-                                 cmap, normalize, filename=path,
-                                 size=1, figsize=(20,10), adjustment=True)
+        pci_interference = [cmap(normalize_pci_interference(value))[:3] for value in pci_interference]
+        pci_interference = [[int(x*255) for x in value] for value in pci_interference]    
+        path = "../results/predicted/pci_interference/%s/confidence_pci/priority_%d_set_%d.png" %         (ml_name, prio, set_val)
+        a=visualize_all_location_heatmap(background, x_coord_view, y_coord_view, pci_interference, 
+                                         cmap, normalize_pci_interference, filename=path,
+                                         size=1, figsize=(20,10), adjustment=True, show=False)
 
