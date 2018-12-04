@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[12]:
 
 
 from matplotlib import pyplot as plt
@@ -16,6 +16,9 @@ import pickle
 import keras
 import loadnotebook
 from predictionhelper import *
+
+from bayes_opt import BayesianOptimization
+import sklearn.metrics as metric
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -32,7 +35,7 @@ df_all_data = get_data(config=demo_config, pure=True, refresh=False)
 print(len(df_all_data))
 
 
-# In[3]:
+# In[158]:
 
 
 prediction_columns = ["RSRP", "RSRQ", "SNR"]
@@ -40,7 +43,7 @@ pred_index = 1
 pred_col = prediction_columns[pred_index]
 
 
-# In[4]:
+# In[159]:
 
 
 dropped_columns = [c for c in df_all_data if "beam" in c] + prediction_columns[pred_index+1:]
@@ -57,17 +60,11 @@ for i in range(pred_index+1):
     df_data[prediction_columns[i]] = merge_agg(temp, group, prediction_columns[i], ['mean'])['mean']
     
 df_data = df_data.drop_duplicates()
-df_data = df_data.dropna()
+# df_data = df_data.dropna()
 print(len(df_data))
 
 
-# In[5]:
-
-
-df_data
-
-
-# In[6]:
+# In[160]:
 
 
 data_train, data_test = pd.DataFrame(), pd.DataFrame()
@@ -82,7 +79,7 @@ for p in demo_config :
 print(len(data_train), len(data_test))
 
 
-# In[7]:
+# In[161]:
 
 
 exclude_train_col = ['priority', pred_col]
@@ -101,18 +98,117 @@ for p in demo_config :
         y_test_dict[(p, s)] = np.array(b[pred_col].values.tolist())
 
 
+# # KNN 
+
+# In[162]:
+
+
+from sklearn.neighbors import KNeighborsRegressor
+
+
+# In[163]:
+
+
+class knn_target :
+    def __init__(self, x_train, y_train, x_test, y_test) :
+        self.x_train = x_train
+        self.y_train = y_train
+        self.x_test = x_test
+        self.y_test = y_test
+        self.weights = ['uniform', 'distance']
+        self.algorithms = ['auto', 'ball_tree', 'kd_tree', 'brute']
+        
+    def clean_param(self, param) :
+        params = {'n_neighbors':7}
+        params['weights'] = self.weights[int(param['weight'])]
+        params['algorithm'] = self.algorithms[int(param['algorithm'])]
+        params['leaf_size'] = int(param['leaf_size'])
+        params['p'] = int(param['p'])
+        return params
+        
+    def evaluate(self, weight, algorithm, leaf_size=100, p=2):
+        params = {}
+        params['weight'] = weight
+        params['algorithm'] = algorithm
+        params['leaf_size'] = int(leaf_size)
+        params['p'] = int(p)
+        params = self.clean_param(params)
+
+        model = KNeighborsRegressor(**params)
+        model.fit(self.x_train, self.y_train)
+        y_pred = model.predict(self.x_test)
+        predictions = [round(value) for value in y_pred]
+        mse = metric.mean_squared_error(self.y_test, predictions)
+        rmse = math.sqrt(mse)
+        return -1*rmse
+
+
+# In[62]:
+
+
+kt = knn_target(x_train, y_train, 
+                x_test, y_test)
+kBO = BayesianOptimization(kt.evaluate, {'weight': (0, 1),
+                                        'algorithm' : (0, 3),
+                                        'leaf_size' : (5, 50),
+                                        'p': (1, 2),},
+                            random_state = 1)
+
+kBO.maximize(init_points=20, n_iter=5)
+
+
+# In[63]:
+
+
+params = kt.clean_param(kBO.res['max']['max_params'])
+params
+
+
+# In[164]:
+
+
+knn_params_list = [
+{'n_neighbors': 7,
+ 'weights': 'distance',
+ 'algorithm': 'brute',
+ 'leaf_size': 5,
+ 'p': 1}, 
+{'n_neighbors': 7,
+ 'weights': 'uniform',
+ 'algorithm': 'kd_tree',
+ 'leaf_size': 49,
+ 'p': 1},
+{'n_neighbors': 7,
+ 'weights': 'uniform',
+ 'algorithm': 'kd_tree',
+ 'leaf_size': 9,
+ 'p': 1}
+]
+
+knn_params = knn_params_list[pred_index]
+
+
+# In[165]:
+
+
+model = KNeighborsRegressor(**knn_params)
+model.fit(x_train, y_train)
+y_pred = model.predict(x_test)
+predictions = [round(value) for value in y_pred]
+mse = metric.mean_squared_error(y_test, predictions)
+rmse = math.sqrt(mse)
+rmse
+
+
 # # XGBoost  
 
-# In[8]:
+# In[19]:
 
 
 from xgboost import XGBRegressor
-from bayes_opt import BayesianOptimization
-
-import sklearn.metrics as metric
 
 
-# In[9]:
+# In[20]:
 
 
 class xgboost_target :
@@ -280,7 +376,7 @@ print(rmse)
 
 # # LGBM 
 
-# In[15]:
+# In[7]:
 
 
 import lightgbm
@@ -288,7 +384,7 @@ import lightgbm as lgb
 from lightgbm import LGBMRegressor
 
 
-# In[16]:
+# In[90]:
 
 
 class lgbm_target :
@@ -361,7 +457,7 @@ class lgbm_target :
 # params
 
 
-# In[20]:
+# In[134]:
 
 
 lgbm_params_list = [
@@ -436,7 +532,7 @@ lgbm_params_list = [
 lgbm_params = lgbm_params_list[pred_index]
 
 
-# In[21]:
+# In[135]:
 
 
 lgbm_model = LGBMRegressor(**lgbm_params)
@@ -448,7 +544,7 @@ rmse = math.sqrt(mse)
 print(rmse)
 
 
-# In[22]:
+# In[136]:
 
 
 y_diff = np.abs(y_pred - y_test)
@@ -457,25 +553,27 @@ len(np.where(y_diff<10)[0])/len(y_test)
 
 # # Experiment 
 
-# In[23]:
+# In[166]:
 
 
 def reset_model(model_name, params=None) :
     if 'xgb' in model_name :
         return XGBRegressor(**xgboost_params) if params is None else XGBRegressor(**params)
+    elif 'knn' in model_name :
+        return KNeighborsRegressor(**knn_params) if params is None else KNeighborsRegressor(**params)
     else :
         return LGBMRegressor(**lgbm_params) if params is None else LGBMRegressor(**params)
 
 
-# In[24]:
+# In[167]:
 
 
-model_name = 'lgbm'
+model_name = 'knn'
 
 
 # # Baseline 
 
-# In[25]:
+# In[17]:
 
 
 model = reset_model(model_name)
@@ -493,7 +591,7 @@ pickle.dump(model, open("db/%s_%s_baseline.pickle.dat" % (pred_col, model_name),
 
 # # Independent 
 
-# In[26]:
+# In[168]:
 
 
 for s in demo_config[6] :
@@ -511,7 +609,7 @@ for s in demo_config[6] :
 
 # # Transfer
 
-# In[27]:
+# In[169]:
 
 
 for s in demo_config[6] :
@@ -534,7 +632,7 @@ for s in demo_config[6] :
 
 # # Generate Predicted Coordinate 
 
-# In[28]:
+# In[20]:
 
 
 x_cut = 50  
@@ -557,7 +655,7 @@ all_x_pci = pd.DataFrame({'location_x':x_coord_list, 'location_y':y_coord_list})
 
 # # Bayesian Opt - Exploration - Partial Point
 
-# In[29]:
+# In[21]:
 
 
 from matplotlib import gridspec
@@ -605,6 +703,8 @@ def plot_gp(bo, x, curr_x_train, curr_y_train, set_val, model, show_sigma_map=Fa
 def get_target(model_name, curr_x_train, curr_y_train, curr_x_test, curr_y_test) :
     if 'xgb' in model_name : 
         return xgboost_target(curr_x_train, curr_y_train, curr_x_test, curr_y_test)
+    if 'knn' in model_name : 
+        return knn_target(curr_x_train, curr_y_train, curr_x_test, curr_y_test)
     else : 
         return lgbm_target(curr_x_train, curr_y_train, curr_x_test, curr_y_test)
     
@@ -617,6 +717,11 @@ def get_params_range(model_name) :
                 'min_child_weight': (1, 1),
                 'max_delta_weight': (1, 12),
                 'rate_drop': (0, 1)}
+    elif 'knn' in model_name :
+        return {'weight': (0, 1),
+                'algorithm' : (0, 3),
+                'leaf_size' : (5, 50),
+                'p': (1, 2),}
     else :
         return {'min_child_weight': (0.01, 1),
               'learning_rate': (1, 10),
@@ -624,26 +729,179 @@ def get_params_range(model_name) :
               'num_leaves': (5, 50)}
 
 
-# In[30]:
+# In[127]:
 
 
+class target2() :
+    def __init__(self, set_val) :
+        self.set_val = set_val
+    
+    def optimize(self, x, y) :
+        if self.bayes_opt is None or self.bayes_opt.X is None or len(self.bayes_opt.X) < 2:
+            return -1000
+
+        curr_df_data = df_data[df_data.set == self.set_val]
+
+        temp = curr_df_data.copy()
+        temp2 = pd.DataFrame(columns=curr_df_data.columns)
+    
+        bo = self.bayes_opt
+        for x in bo.X :
+            distance = lambda d: math.hypot(abs(x[0]-d[0]), abs(x[1]-d[1]))
+            temp["d"] = temp.apply(distance, axis=1)
+            temp2 = temp2.append(temp.loc[temp.d.idxmin()])
+
+        temp3 = curr_df_data[~curr_df_data.index.isin(temp2.index)]
+        temp2 = curr_df_data[~curr_df_data.index.isin(temp3.index)]
+
+        curr_x_train = temp2.drop(exclude_train_col, axis=1)
+        curr_y_train = np.array(temp2[pred_col].values.tolist())
+        curr_x_test = temp3.drop(exclude_train_col, axis=1)
+        curr_y_test = np.array(temp3[pred_col].values.tolist())
+
+        params = {'min_child_weight': 0.7151893663724195, 'learning_rate': 4.9382849013642325, 
+                  'max_depth': 7.462318716046472, 'num_leaves': 5.909827884814657,
+                  'min_data':1, 'min_data_in_bin':1}
+        t = get_target(model_name, curr_x_train, curr_y_train, curr_x_test, curr_y_test)
+        params = t.clean_param(params)
+
+        model = reset_model(model_name, params)
+        model.fit(curr_x_train, curr_y_train)
+
+        y_pred = model.predict(curr_x_test)
+        predictions = [round(value) for value in y_pred]
+        mse = metric.mean_squared_error(curr_y_test, predictions)
+        rmse = math.sqrt(mse)
+        return -1*rmse
+
+
+# In[129]:
+
+
+acc_dict = {}
+# for set_val in demo_config[6] :
 random = 0
-t = target()
+t = target2(2)
 bo2 = BayesianOptimization(t.optimize, {'x': (min(x_coord_list), max(x_coord_list)), 
                                         'y': (min(y_coord_list), max(y_coord_list))},
                            random_state=random, 
                            verbose=1)
 t.bayes_opt = bo2
 
-iterations = 100
+iterations = 50
 gp_params = {"alpha": 1e-5, "n_restarts_optimizer": 3, 'random_state':random}
-bo2.maximize(init_points=2, n_iter=iterations, acq="ei", xi=0.1, **gp_params)
+bo2.maximize(init_points=10, n_iter=iterations, acq="ei", xi=1e+2, **gp_params)
+#     bo2.maximize(init_points=2, n_iter=iterations, acq="ei", xi=1e-4, **gp_params)
+acc_dict[set_val] = bo2.res['max']['max_val']
+print(acc_dict[set_val])
 
 
-# In[31]:
+# In[ ]:
+
+
+bayes_spec_target_inden = np.array([x for x in acc_dict.values()])
+for x in list(bayes_spec_target_inden[:, 2]) :
+    print(x)
+
+
+# # Target : Variance 
+
+# In[79]:
+
+
+random = 0
+t = target()
+bo2 = BayesiaanOptimization(t.optimize, {'x': (min(x_coord_list), max(x_coord_list)), 
+                                        'y': (min(y_coord_list), max(y_coord_list))},
+                           random_state=random, 
+                           verbose=1)
+t.bayes_opt = bo2
+
+iterations = 300
+gp_params = {"alpha": 1e-5, "n_restarts_optimizer": 3, 'random_state':random}
+bo2.maximize(init_points=2, n_iter=iterations, acq="ei", xi=1e+2, **gp_params)
+
+
+# # Bayesian Independent 
+
+# In[156]:
 
 
 acc_dict = {}
+for set_val in demo_config[6] :
+    curr_df_data = df_data[df_data.set == set_val]
+    iterations = int(0.5*len(curr_df_data))
+
+    temp = curr_df_data.copy()
+    temp2 = pd.DataFrame(columns=curr_df_data.columns)
+    
+#     random = 0
+#     t = target()
+#     bo2 = BayesianOptimization(t.optimize, {'x': (min(x_coord_list), max(x_coord_list)), 
+#                                             'y': (min(y_coord_list), max(y_coord_list))},
+#                                random_state=random, 
+#                                verbose=1)
+#     t.bayes_opt = bo2
+#     gp_params = {"alpha": 1e-5, "n_restarts_optimizer": 3, 'random_state':random}
+#     bo2.maximize(init_points=2, n_iter=iterations, acq="ei", xi=0.1, **gp_params)
+#     bo2.maximize(init_points=2, n_iter=iterations, acq="poi", xi=0.1, **gp_params)
+#     bo2.maximize(init_points=2, n_iter=iterations, acq="ucb", kappa=10, **gp_params)
+    
+    for x in bo2.X[:iterations] :
+        distance = lambda d: math.hypot(abs(x[0]-d[0]), abs(x[1]-d[1]))
+        temp["d"] = temp.apply(distance, axis=1)
+        temp2 = temp2.append(temp.loc[temp.d.idxmin()])
+
+#     trouble_col = ['PCI', 'Power_37', 'Power_38', 'Power_39', 'Power_40', 'Power_41', 'Power_42', 'set']
+#     temp2 = temp2.astype({x:'int' for x in trouble_col})
+    temp3 = curr_df_data[~curr_df_data.index.isin(temp2.index)]
+    temp2 = curr_df_data[~curr_df_data.index.isin(temp3.index)]
+
+#     curr_x_train = temp2.drop(["d"] + exclude_train_col, axis=1)
+    curr_x_train = temp2.drop(exclude_train_col, axis=1)
+
+    curr_y_train = np.array(temp2[pred_col].values.tolist())
+    curr_x_test = temp3.drop(exclude_train_col, axis=1)
+    curr_y_test = np.array(temp3[pred_col].values.tolist())
+
+    t = get_target(model_name, curr_x_train, curr_y_train, curr_x_test, curr_y_test)
+    bo = BayesianOptimization(t.evaluate, 
+                              get_params_range(model_name),
+                              random_state = random, 
+                              verbose=0)
+
+    bo.maximize(init_points=5, n_iter=1)
+    params = t.clean_param(bo.res['max']['max_params'])
+#     params = lgbm_params
+    
+    model = reset_model(model_name, params)
+    model.fit(curr_x_train, curr_y_train)
+
+    y_pred = model.predict(curr_x_test)
+    predictions = [round(value) for value in y_pred]
+    mse = metric.mean_squared_error(curr_y_test, predictions)
+    rmse = math.sqrt(mse)
+    print(rmse, bo.res['max']['max_params'])
+    acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), rmse]
+    pickle.dump(model, open("db/%s_%s_bayesian_independent_set_%s.pickle.dat" %                             (pred_col, model_name, s), "wb"))
+
+
+# In[157]:
+
+
+bayes_inden = np.array([x for x in acc_dict.values()])
+for x in list(bayes_inden[:, 2]) :
+    print(x)
+
+
+# # Bayesian Baseline 
+
+# In[96]:
+
+
+acc_dict = {}
+all_curr_x_train, all_curr_y_train = pd.DataFrame(), []
+all_curr_x_test_dict, all_curr_y_test_dict = {}, {}
 for set_val in demo_config[6] :
     curr_df_data = df_data[df_data.set == set_val]
     iterations = int(0.2*len(curr_df_data))
@@ -662,59 +920,135 @@ for set_val in demo_config[6] :
 
 #     curr_x_train = temp2.drop(["d"] + exclude_train_col, axis=1)
     curr_x_train = temp2.drop(exclude_train_col, axis=1)
-
-    curr_y_train = np.array(temp2[pred_col].values.tolist())
+    curr_y_train = temp2[pred_col].values.tolist()
     curr_x_test = temp3.drop(exclude_train_col, axis=1)
-    curr_y_test = np.array(temp3[pred_col].values.tolist())
-    print(set_val, len(curr_x_train), len(curr_x_test))
+    curr_y_test = temp3[pred_col].values.tolist()
+    
+    all_curr_x_train = all_curr_x_train.append(curr_x_train)
+    all_curr_y_train += curr_y_train 
+    all_curr_x_test_dict[set_val] = curr_x_test
+    all_curr_y_test_dict[set_val] = curr_y_test  
 
 #     plot_gp(bo2, all_x_pci.values, curr_x_train, curr_y_train, set_val, "xgboost")
     
-    params = {'learning_rate' : 0.03, 'max_depth' : 9, 'min_child_weight':1, 'gamma':4.2522, 
-              'max_delta_weight':11, 'random_state' :random}
-    params = {'learning_rate' : 0.03, 'max_depth' : 9, 'min_child_weight':1, 'gamma':1, 
-              'max_delta_weight':11, 'random_state' :random}
+#     params = {'learning_rate' : 0.03, 'max_depth' : 9, 'min_child_weight':1, 'gamma':4.2522, 
+#               'max_delta_weight':11, 'random_state' :random}
+#     params = {'learning_rate' : 0.03, 'max_depth' : 9, 'min_child_weight':1, 'gamma':1, 
+#               'max_delta_weight':11, 'random_state' :random}
+
+t = get_target(model_name, all_curr_x_train, all_curr_y_train, all_curr_x_test, all_curr_y_test)
+xgbBO = BayesianOptimization(t.evaluate, 
+                             get_params_range(model_name),
+                             random_state = random, 
+                             verbose=0)
+
+xgbBO.maximize(init_points=5, n_iter=3)
+print(xgbBO.res['max']['max_params'])
+params = t.clean_param(xgbBO.res['max']['max_params'])
+
+# params = lgbm_params
+# params['min_data_in_bin']=1
+# params['min_data']=1
+    
+model = reset_model(model_name, params)
+model.fit(curr_x_train, curr_y_train)
+pickle.dump(model, open("db/%s_%s_bayesian_%s.pickle.dat" % (pred_col, model_name, set_val), "wb"))
+
+for set_val in demo_config[6] :
+    y_pred = model.predict(all_curr_x_test_dict[set_val])
+    predictions = [round(value) for value in y_pred]
+    mse = metric.mean_squared_error(all_curr_y_test_dict[set_val], predictions)
+    rmse = math.sqrt(mse)
+#     print(rmse)    
+    acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), rmse]
+    pickle.dump(model, open("db/%s_%s_bayesian_baseline_set_%s.pickle.dat" % (pred_col, model_name, s), "wb"))
+
+
+# In[ ]:
+
+
+bayes_baseline = np.array([x for x in acc_dict.values()])
+for x in list(bayes_baseline[:, 2]) :
+    print(x)
+
+
+# # Bayesian Transfer 
+
+# In[ ]:
+
+
+acc_dict = {}
+all_curr_x_train_dict, all_curr_y_train_dict = {}, {}
+all_curr_x_test_dict, all_curr_y_test_dict = {}, {}
+for set_val in demo_config[6] :
+    curr_df_data = df_data[df_data.set == set_val]
+    iterations = int(0.2*len(curr_df_data))
+
+    temp = curr_df_data.copy()
+    temp2 = pd.DataFrame(columns=curr_df_data.columns)
+    for x in bo2.X[:iterations] :
+        distance = lambda d: math.hypot(abs(x[0]-d[0]), abs(x[1]-d[1]))
+        temp["d"] = temp.apply(distance, axis=1)
+        temp2 = temp2.append(temp.loc[temp.d.idxmin()])
+
+#     trouble_col = ['PCI', 'Power_37', 'Power_38', 'Power_39', 'Power_40', 'Power_41', 'Power_42', 'set']
+#     temp2 = temp2.astype({x:'int' for x in trouble_col})
+    temp3 = curr_df_data[~curr_df_data.index.isin(temp2.index)]
+    temp2 = curr_df_data[~curr_df_data.index.isin(temp3.index)]
+
+#     curr_x_train = temp2.drop(["d"] + exclude_train_col, axis=1)
+    curr_x_train = temp2.drop(exclude_train_col, axis=1)
+    curr_y_train = temp2[pred_col].values.tolist()
+    
+    all_curr_x_train_dict[set_val] = curr_x_train
+    all_curr_y_train_dict[set_val] = curr_y_train  
+    all_curr_x_test_dict[set_val] = curr_df_data.drop(exclude_train_col, axis=1)
+    all_curr_y_test_dict[set_val] = curr_df_data[pred_col].values.tolist()  
+
+#     plot_gp(bo2, all_x_pci.values, curr_x_train, curr_y_train, set_val, "xgboost")
+    
+#     params = {'learning_rate' : 0.03, 'max_depth' : 9, 'min_child_weight':1, 'gamma':4.2522, 
+#               'max_delta_weight':11, 'random_state' :random}
+#     params = {'learning_rate' : 0.03, 'max_depth' : 9, 'min_child_weight':1, 'gamma':1, 
+#               'max_delta_weight':11, 'random_state' :random}
+
+params = lgbm_params
+params['min_data_in_bin']=1
+params['min_data']=1
+    
+for set_val in demo_config[6] :
+    curr_x_train, curr_y_train = pd.DataFrame(), []
+    for k in all_curr_x_train_dict :
+        if k != set_val :
+            curr_x_train = curr_x_train.append(all_curr_x_train_dict[k])
+            curr_y_train += all_curr_y_train_dict[k]
 
     t = get_target(model_name, curr_x_train, curr_y_train, curr_x_test, curr_y_test)
-    bo = BayesianOptimization(t.evaluate, 
-                              get_params_range(model_name),
-                              random_state = random, 
-                              verbose=0)
+    xgbBO = BayesianOptimization(t.evaluate, 
+                                 get_params_range(model_name),
+                                 random_state = random, 
+                                 verbose=0)
 
-    bo.maximize(init_points=5, n_iter=3)
-    print(bo.res['max']['max_params'])
-    params = t.clean_param(bo.res['max']['max_params'])
-    
+    xgbBO.maximize(init_points=5, n_iter=3)
+    print(xgbBO.res['max']['max_params'])
+    params = t.clean_param(xgbBO.res['max']['max_params'])
+
     model = reset_model(model_name, params)
     model.fit(curr_x_train, curr_y_train)
-
-    y_pred = model.predict(curr_x_test)
+    pickle.dump(model, open("db/%s_%s_bayesian_transfer_%s.pickle.dat" % ('PCI', model_name, set_val), "wb"))
+    
+    y_pred = model.predict(all_curr_x_test_dict[set_val])
     predictions = [round(value) for value in y_pred]
-    mse = metric.mean_squared_error(curr_y_test, predictions)
+    mse = metric.mean_squared_error(all_curr_y_test_dict[set_val], predictions)
     rmse = math.sqrt(mse)
     print(rmse)
     acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), rmse]
-    pickle.dump(model, open("db/%s_%s_bayesian_set_%s.pickle.dat" % (pred_col, model_name, s), "wb"))
 
 
-# In[32]:
+# In[ ]:
 
 
-temporary = np.array([x for x in acc_dict.values()])
-for x in list(temporary[:, 2]) :
-    print(x)
-
-
-# In[33]:
-
-
-for x in list(temporary[:, 0]) :
-    print(x)
-
-
-# In[34]:
-
-
-for x in list(temporary[:, 1]) :
+bayes_transfer = np.array([x for x in acc_dict.values()])
+for x in list(bayes_transfer[:, 2]) :
     print(x)
 
