@@ -96,7 +96,7 @@ for p in demo_config :
 
 # # KNN 
 
-# In[15]:
+# In[6]:
 
 
 from sklearn.neighbors import KNeighborsClassifier
@@ -141,22 +141,22 @@ class knn_target :
 # In[9]:
 
 
-kt = knn_target(x_pci_train[location_col], y_pci_train, 
-                x_pci_test[location_col], y_pci_test)
-kBO = BayesianOptimization(kt.evaluate, {'weight': (0, 1),
-                                        'algorithm' : (0, 3),
-                                        'leaf_size' : (5, 50),
-                                        'p': (1, 2),},
-                            random_state = 1)
+# kt = knn_target(x_pci_train[location_col], y_pci_train, 
+#                 x_pci_test[location_col], y_pci_test)
+# kBO = BayesianOptimization(kt.evaluate, {'weight': (0, 1),
+#                                         'algorithm' : (0, 3),
+#                                         'leaf_size' : (5, 50),
+#                                         'p': (1, 2),},
+#                             random_state = 1)
 
-kBO.maximize(init_points=20, n_iter=1)
+# kBO.maximize(init_points=20, n_iter=1)
 
 
 # In[13]:
 
 
-params = kt.clean_param(kBO.res['max']['max_params'])
-params
+# params = kt.clean_param(kBO.res['max']['max_params'])
+# params
 
 
 # In[54]:
@@ -173,9 +173,9 @@ knn_params = {'n_neighbors': 7,
 
 
 model = KNeighborsClassifier(**knn_params)
-model.fit(x_pci_train_simple, y_pci_train)
+model.fit(x_pci_train, y_pci_train)
 
-y_pci_pred = model.predict(x_pci_test_simple)
+y_pci_pred = model.predict(x_pci_test)
 predictions = [round(value) for value in y_pci_pred]
 accuracy = accuracy_score(y_pci_test, predictions)
 print(1-accuracy)
@@ -395,6 +395,9 @@ print(1-accuracy)
 # In[10]:
 
 
+import warnings
+warnings.filterwarnings('ignore')
+
 def reset_model(model_name, params=None) :
     if 'xgb' in model_name :
         return XGBClassifier(**xgboost_params) if params is None else XGBClassifier(**params)
@@ -412,7 +415,7 @@ model_name = 'lgbm'
 
 # # Baseline 
 
-# In[26]:
+# In[17]:
 
 
 model = reset_model(model_name)
@@ -429,7 +432,7 @@ pickle.dump(model, open("db/%s_%s_baseline.pickle.dat" % ('PCI', model_name), "w
 
 # # Independent 
 
-# In[27]:
+# In[18]:
 
 
 for s in demo_config[6] :
@@ -446,14 +449,20 @@ for s in demo_config[6] :
 
 # # Transfer 
 
-# In[28]:
+# In[20]:
 
 
 for s in demo_config[6] :
     curr_x_pci_train = pci_data[pci_data.set!=s].drop(['PCI', 'set'], axis=1)
     curr_y_pci_train = pci_data[pci_data.set!=s].PCI.apply(lambda x : pci_encode[x]).values.tolist()
-    curr_x_pci_test = pci_data[pci_data.set==s].drop(['PCI', 'set'], axis=1)
-    curr_y_pci_test = pci_data[pci_data.set==s].PCI.apply(lambda x : pci_encode[x]).values.tolist()
+    
+#     Testing 100%
+#     curr_x_pci_test = pci_data[pci_data.set==s].drop(['PCI', 'set'], axis=1)
+#     curr_y_pci_test = pci_data[pci_data.set==s].PCI.apply(lambda x : pci_encode[x]).values.tolist()
+#     Testing 30%
+    curr_x_pci_test = x_pci_test_dict[(6, s)]
+    curr_y_pci_test = y_pci_test_dict[(6, s)]
+    curr_x_pci_test = curr_x_pci_test.drop(['set'], axis=1)
 
     model = reset_model(model_name)
     model.fit(curr_x_pci_train, curr_y_pci_train)
@@ -468,7 +477,7 @@ for s in demo_config[6] :
 
 # # Generate Predicted Coordinate 
 
-# In[15]:
+# In[12]:
 
 
 x_cut = 50  
@@ -491,14 +500,7 @@ all_x_pci = pd.DataFrame({'location_x':x_coord_list, 'location_y':y_coord_list})
 
 # # Bayesian Opt 
 
-# In[16]:
-
-
-import warnings
-warnings.filterwarnings('ignore')
-
-
-# In[17]:
+# In[14]:
 
 
 from matplotlib import gridspec
@@ -594,7 +596,7 @@ gp_params = {"alpha": 1e-5, "n_restarts_optimizer": 3, 'random_state':random}
 bo2.maximize(init_points=2, n_iter=iterations, acq="ei", xi=0.1, **gp_params)
 
 
-# In[33]:
+# In[ ]:
 
 
 random = 3
@@ -605,20 +607,20 @@ bo3 = BayesianOptimization(t.optimize, {'x': (min(x_coord_list), max(x_coord_lis
                            verbose=1)
 t.bayes_opt = bo3
 
-iterations = 100
+iterations = 500
 gp_params = {"alpha": 1e-5, "n_restarts_optimizer": 3, 'random_state':random}
 bo3.maximize(init_points=10, n_iter=iterations, acq="ei", xi=1e+1, **gp_params)
 
 
 # # Bayesian Independent 
 
-# In[38]:
+# In[ ]:
 
 
 acc_dict = {}
 for set_val in demo_config[6] :
     curr_pci_data = pci_data[pci_data.set == set_val]
-    iterations = int(0.2*len(curr_pci_data)) + 5
+    iterations = int(0.7*len(curr_pci_data)) + 5
 
     temp = curr_pci_data.copy()
     temp2 = pd.DataFrame(columns=temp.columns)
@@ -667,7 +669,7 @@ for set_val in demo_config[6] :
     print(1-accuracy)
 
 
-# In[39]:
+# In[ ]:
 
 
 # lgbm, random state 0 
