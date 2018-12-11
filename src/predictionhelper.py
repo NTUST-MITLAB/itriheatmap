@@ -1,7 +1,7 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[2]:
 
 
 from matplotlib import pyplot as plt
@@ -226,6 +226,7 @@ def collect_df(paths) :
 
 def get_source(priority, set_value) :
      return '../data/demo-priority' + str(priority) + '/set' + str(set_value) + '/*'
+    
 
 def get_filenames(path) :
     mrk_filenames = []
@@ -386,9 +387,11 @@ def summary_dict_to_list(data_dict) :
 # old background shape : (218, 877)
 # new background shape : (234, 945)
 def transform_lat_lng(lat, lon) :
-    new_lat = (lat-100) * (945/877)
-    new_lng = (lon-50) * (234/218)
-
+    #new_lat = (lat-100) * (945/877)
+    #new_lng = (lon-50) * (234/218)
+    new_lat = (lat-100) /2 +1
+    new_lng = (lon-50) /2 +1
+    
     return int(new_lat), int(new_lng)
 
 def add_power(df, priority, set_value) :
@@ -452,6 +455,22 @@ def add_features(df, priority, set_value) :
     df = add_distance(df)
     df = add_angle(df)
     return df
+
+def add_features_custom(df, priority, comstum_config_list) :
+    #df = add_power(df, priority, set_value)
+    i = 0
+    power_val = {}
+    for p in comstum_config_list:
+        power_val[i+37]=comstum_config_list[i]
+        i = i+1
+
+    for p in power_val :
+        df["Power_" + str(p)] = power_val[p]
+        
+    df = add_beam(df, 6, 33)
+    df = add_distance(df)
+    df = add_angle(df)
+    return df
     
 def add_features_summary(df, priority, set_value) :
     df = add_power(df, priority, set_value)
@@ -466,13 +485,14 @@ def draw_base_station(source, adjustment=True) :
         color=bs_color[bs]
         
         if adjustment :
+            
             y, x = transform_lat_lng(y, x)
         
-        d = 10
+        d = 4
         top_left = (x-d, y+d)
         bottom_right = (x+d, y-d)
         source = cv2.rectangle(source, top_left, bottom_right, color, -1)
-        source = cv2.rectangle(source, top_left, bottom_right, (0,0,0), 2)
+        source = cv2.rectangle(source, top_left, bottom_right, (0,0,0), 1)
     return source
 
 def get_map_image(station=True, new_format=True, black_white=False) :
@@ -559,8 +579,10 @@ def visualize_all_location_heatmap(background, x_list, y_list, color, cmap, norm
     background = np.array(background)
     heatmap = np.array(background)
     for lon, lat, c in zip(x_list, y_list, color):
+        
         if adjustment :
             lat, lon = transform_lat_lng(lat, lon)
+            
         heatmap = cv2.circle(heatmap, (lon, lat), size, c, -1)
         
     alpha = 0.7
@@ -579,11 +601,10 @@ def visualize_all_location_heatmap(background, x_list, y_list, color, cmap, norm
                                     norm=normalize,
                                     orientation='horizontal')
     
-    if show :
-        plt.show()
-
     if filename != None :
         fig.savefig(filename)
+    if show :
+        plt.show()
 
 def extract_data(config, feature=True, pure=False) :
     result = pd.DataFrame()
