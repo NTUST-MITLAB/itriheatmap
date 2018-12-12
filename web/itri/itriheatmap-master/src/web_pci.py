@@ -4,10 +4,9 @@
 # In[2]:
 
 import matplotlib
-import loadnotebook
+#import loadnotebook
 from helper import * 
 import sys
-
 
 
 
@@ -31,6 +30,7 @@ if pci_locker == 0:
     lock_pci = False
 else:
     lock_pci = True
+    
     
     
 
