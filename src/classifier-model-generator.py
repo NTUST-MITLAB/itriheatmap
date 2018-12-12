@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 import warnings
@@ -13,28 +13,28 @@ from sklearn.metrics import accuracy_score
 
 from bayes_opt import BayesianOptimization
 from sklearn.model_selection import train_test_split
-from keras.models import Sequential
-from keras.layers import Dense
-from pylab import *
 
 import pickle
-import keras
 import loadnotebook
 from predictionhelper import * 
 
 
-# In[2]:
+# In[ ]:
 
 
-demo_config = {6 : [1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 20, 
-                    21, 22, 23, 24, 25, 26, 28, 29, 30, 31, 32, 33]}
-# demo_config = {6 : [2, 3, 4, 12, 13, 14, 15, 16, 20, 22, 24, 29]}
+sets = [x for x in range(1, 34)]
+sets.remove(9)
+sets.remove(12)
+sets.remove(17)
+sets.remove(18)
+sets.remove(19)
+demo_config = {6 : sets}
 
-df_data = get_data(config=demo_config, pure=True, refresh=False)
+df_data = get_data(config=demo_config, pure=True, refresh=False).reset_index(drop=True)
 print(len(df_data))
 
 
-# In[3]:
+# In[ ]:
 
 
 pci_data = df_data[df_data["PCI"].isin(whitelist_PCI)]
@@ -44,24 +44,12 @@ print("outlier pci", len(df_data) - size)
 beam_columns = [c for c in df_data if "beam" in c]
 pci_data = pci_data.drop(["RSRP", "RSRQ", "SNR"]+beam_columns, axis=1)
 
-pci_data = merge_count(pci_data, ['location_x', 'location_y', 'PCI', 'set'], 'priority', ["count"])
-pci_data = pci_data.drop(["count", "priority"], axis=1) # will be use for filter ?
-
 pci_data = pci_data.drop_duplicates()
 print("duplicates pci", size - len(pci_data))
 pci_data = pci_data.dropna()
 
 
-# In[12]:
-
-
-# location_col = ['location_x', 'location_y', 
-#                 'Power_37', 'Power_38', 'Power_39', 'Power_40', 'Power_41', 'Power_42', 
-#                 'set', 'PCI']
-# pci_data = pci_data[location_col]
-
-
-# In[4]:
+# In[ ]:
 
 
 pci_train, pci_test = pd.DataFrame(), pd.DataFrame()
@@ -76,7 +64,7 @@ for p in demo_config :
 print(len(pci_train), len(pci_test))
 
 
-# In[5]:
+# In[ ]:
 
 
 x_pci_train = pci_train.drop(["PCI"], axis=1)
@@ -94,15 +82,36 @@ for p in demo_config :
         y_pci_test_dict[(p, s)] = np.array(b.PCI.apply(lambda x : pci_encode[x]).values.tolist())
 
 
+# # SVM 
+
+# In[ ]:
+
+
+from sklearn import svm
+
+
+# In[ ]:
+
+
+svm_params = {'random_state':0}
+model = svm.LinearSVC(**svm_params)
+model.fit(x_pci_train, y_pci_train)
+
+y_pci_pred = model.predict(x_pci_test)
+predictions = [round(value) for value in y_pci_pred]
+accuracy = accuracy_score(y_pci_test, predictions)
+print(1-accuracy)
+
+
 # # KNN 
 
-# In[6]:
+# In[ ]:
 
 
 from sklearn.neighbors import KNeighborsClassifier
 
 
-# In[51]:
+# In[ ]:
 
 
 class knn_target :
@@ -138,7 +147,7 @@ class knn_target :
         return accuracy
 
 
-# In[9]:
+# In[ ]:
 
 
 # kt = knn_target(x_pci_train[location_col], y_pci_train, 
@@ -152,14 +161,14 @@ class knn_target :
 # kBO.maximize(init_points=20, n_iter=1)
 
 
-# In[13]:
+# In[ ]:
 
 
 # params = kt.clean_param(kBO.res['max']['max_params'])
 # params
 
 
-# In[54]:
+# In[ ]:
 
 
 knn_params = {'n_neighbors': 7,
@@ -169,7 +178,7 @@ knn_params = {'n_neighbors': 7,
  'p': 1}
 
 
-# In[29]:
+# In[ ]:
 
 
 model = KNeighborsClassifier(**knn_params)
@@ -183,7 +192,7 @@ print(1-accuracy)
 
 # # XGBoost 
 
-# In[17]:
+# In[ ]:
 
 
 from xgboost import XGBClassifier
@@ -191,7 +200,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-# In[18]:
+# In[ ]:
 
 
 class xgboost_target :
@@ -238,7 +247,7 @@ class xgboost_target :
         return accuracy
 
 
-# In[8]:
+# In[ ]:
 
 
 # xt = xgboost_target(x_pci_train, y_pci_train, x_pci_test, y_pci_test)
@@ -254,7 +263,7 @@ class xgboost_target :
 # xgbBO.maximize(init_points=10, n_iter=5)
 
 
-# In[9]:
+# In[ ]:
 
 
 # params = xt.clean_param(xgbBO.res['max']['max_params'])
@@ -267,23 +276,11 @@ class xgboost_target :
 # print(accuracy)
 
 
-# In[26]:
+# In[ ]:
 
 
-xgboost_params = {'learning_rate' : 0.03, 'max_depth' : 9, 'min_child_weight':1, 'gamma':4.2522, 'max_delta_weight':11}
-xgb_model = XGBClassifier(**xgboost_params)
-xgb_model.fit(x_pci_train, y_pci_train)
-
-y_pci_pred = xgb_model.predict(x_pci_test)
-predictions = [round(value) for value in y_pci_pred]
-accuracy = accuracy_score(y_pci_test, predictions)
-print(1-accuracy)
-
-
-# In[19]:
-
-
-xgboost_params = {'learning_rate' : 0.03, 'max_depth' : 9, 'min_child_weight':1, 'gamma':4.2522, 'max_delta_weight':11}
+xgboost_params = {'learning_rate' : 0.03, 'max_depth' : 9, 'min_child_weight':1, 'gamma':4.2522, 
+                  'max_delta_weight':11}
 xgb_model = XGBClassifier(**xgboost_params)
 xgb_model.fit(x_pci_train, y_pci_train)
 
@@ -295,7 +292,7 @@ print(1-accuracy)
 
 # # LGBM 
 
-# In[6]:
+# In[ ]:
 
 
 import lightgbm
@@ -303,7 +300,7 @@ import lightgbm as lgb
 from lightgbm import LGBMClassifier
 
 
-# In[7]:
+# In[ ]:
 
 
 class lgbm_target :
@@ -341,7 +338,7 @@ class lgbm_target :
         return accuracy
 
 
-# In[8]:
+# In[ ]:
 
 
 # lt = lgbm_target(x_pci_train, y_pci_train, x_pci_test, y_pci_test)
@@ -354,7 +351,7 @@ class lgbm_target :
 # lgbmBO.maximize(init_points=3, n_iter=10)
 
 
-# In[14]:
+# In[ ]:
 
 
 # params = lt.clean_param(lgbmBO.res['max']['max_params'])
@@ -366,19 +363,7 @@ class lgbm_target :
 # print(accuracy)
 
 
-# In[8]:
-
-
-lgbm_params = {'learning_rate' : 0.099387, 'max_depth' : 14, 'min_child_weight':0, 'num_leaves':5}
-lgbm_model = LGBMClassifier(**lgbm_params)
-lgbm_model.fit(x_pci_train, y_pci_train)
-y_pci_pred = lgbm_model.predict(x_pci_test)
-predictions = [round(value) for value in y_pci_pred]
-accuracy = accuracy_score(y_pci_test, predictions)
-print(1-accuracy)
-
-
-# In[9]:
+# In[ ]:
 
 
 lgbm_params = {'learning_rate' : 0.099387, 'max_depth' : 14, 'min_child_weight':0, 'num_leaves':5}
@@ -392,7 +377,14 @@ print(1-accuracy)
 
 # # Experiment 
 
-# In[10]:
+# In[ ]:
+
+
+nrmse_matrix = np.empty((4, 3, 34))
+nrmse_matrix[:] = np.nan
+
+
+# In[ ]:
 
 
 import warnings
@@ -403,19 +395,23 @@ def reset_model(model_name, params=None) :
         return XGBClassifier(**xgboost_params) if params is None else XGBClassifier(**params)
     elif 'knn' in model_name :
         return KNeighborsClassifier(**knn_params)
+    elif 'svm' in model_name :
+        return svm.LinearSVC(**svm_params) if params is None else svm.LinearSVC(**params)
     else :
         return LGBMClassifier(**lgbm_params) if params is None else LGBMClassifier(**params)
 
 
-# In[11]:
+# In[ ]:
 
 
-model_name = 'lgbm'
+model_name_list = ['xgboost', 'lgbm', 'knn', 'svm']
+model_idx = 0
+model_name = model_name_list[model_idx]
 
 
 # # Baseline 
 
-# In[17]:
+# In[ ]:
 
 
 model = reset_model(model_name)
@@ -424,15 +420,17 @@ model.fit(x_pci_train, y_pci_train)
 for s in demo_config[6] :
     y_pred = model.predict(x_pci_test_dict[(6, s)])
     predictions = [round(value) for value in y_pred]
-    accuracy = accuracy_score(y_pci_test_dict[(p, s)], predictions)
-    print(1-accuracy)
+    err = 1-accuracy_score(y_pci_test_dict[(p, s)], predictions)
+    nrmse_matrix[model_idx, 0, s] = err
     
 pickle.dump(model, open("db/%s_%s_baseline.pickle.dat" % ('PCI', model_name), "wb"))
+for x in nrmse_matrix[model_idx, 0, 1:]:
+    print('%.3f' % x)
 
 
 # # Independent 
 
-# In[18]:
+# In[ ]:
 
 
 for s in demo_config[6] :
@@ -441,15 +439,18 @@ for s in demo_config[6] :
 
     y_pred = model.predict(x_pci_test_dict[(6, s)])
     predictions = [round(value) for value in y_pred]
-    accuracy = accuracy_score(y_pci_test_dict[(6, s)], predictions)
-    print(1-accuracy)
+    err = 1-accuracy_score(y_pci_test_dict[(6, s)], predictions)
+    nrmse_matrix[model_idx, 1, s] = err
     
     pickle.dump(model, open("db/%s_%s_independent_set_%s.pickle.dat" % ('PCI', model_name, s), "wb"))
+
+for x in nrmse_matrix[model_idx, 1, 1:]:
+    print('%.3f' % x)
 
 
 # # Transfer 
 
-# In[20]:
+# In[ ]:
 
 
 for s in demo_config[6] :
@@ -469,15 +470,64 @@ for s in demo_config[6] :
 
     y_pred = model.predict(curr_x_pci_test)
     predictions = [round(value) for value in y_pred]
-    accuracy = accuracy_score(curr_y_pci_test, predictions)
-    print(1-accuracy)
+    err = 1-accuracy_score(curr_y_pci_test, predictions)
+    nrmse_matrix[model_idx, 2, s] = err
     
     pickle.dump(model, open("db/%s_%s_transfer_except_%s.pickle.dat" % ('PCI', model_name, s), "wb"))
+    
+for x in nrmse_matrix[model_idx, 2, 1:]:
+    print('%.3f' % x)
+
+
+# # Model Analysis
+
+# In[ ]:
+
+
+scenarios = ['baseline', 'independent', 'transfer']
+for scenario in range(3) :
+    print("========================================"+scenarios[scenario])
+    baseline_metrics = nrmse_matrix[:, scenario, 1:]
+    baseline_metrics = baseline_metrics[~np.isnan(baseline_metrics)].reshape((4,len(sets)))
+    print('avg of each methods', np.mean(baseline_metrics, axis=1))
+    print('best performance', np.unique(np.argmin(baseline_metrics, axis=0), return_counts=True))
+    
+    print('diff performance')
+    min_list = np.min(baseline_metrics, axis=0)
+
+    for x in baseline_metrics :
+        diff = x-min_list
+        print(np.mean(diff[np.nonzero(diff)]))
+
+
+# # Scenario Analysis 
+
+# In[ ]:
+
+
+for curr_model in range(4) :
+    print("========================================"+model_name_list[curr_model])
+    metrics = nrmse_matrix[curr_model, :, 1:]
+    metrics = metrics[~np.isnan(metrics)].reshape((3,len(sets)))
+    print('avg of each scenario', np.mean(metrics, axis=1))
+    print('best performance', np.unique(np.argmin(metrics, axis=0), return_counts=True))
+    
+    baseline_metrics = nrmse_matrix[curr_model, 0, 1:]
+    for i in range(1, 3) :
+        print(scenarios[i])
+        curr_metrics = nrmse_matrix[curr_model, i, 1:]
+        drop_idx = curr_metrics > baseline_metrics
+        diff = baseline_metrics[drop_idx] - curr_metrics[drop_idx]
+        print('-------decrease ', i, len(diff), np.mean(diff))
+        
+        improve_idx = curr_metrics < baseline_metrics
+        diff = baseline_metrics[improve_idx] - curr_metrics[improve_idx]
+        print('+++++++increase ', i, len(diff), np.mean(diff))
 
 
 # # Generate Predicted Coordinate 
 
-# In[12]:
+# In[ ]:
 
 
 x_cut = 50  
@@ -500,7 +550,7 @@ all_x_pci = pd.DataFrame({'location_x':x_coord_list, 'location_y':y_coord_list})
 
 # # Bayesian Opt 
 
-# In[14]:
+# In[ ]:
 
 
 from matplotlib import gridspec
@@ -529,13 +579,6 @@ def posterior(bo, x):
     return mu, sigma
 
 def plot_gp(bo, x, curr_x_train, curr_y_train, set_val, model, show_sigma_map=False):
-#     background = get_map_image()
-#     pci_val = [get_pci(d[0], d[1]) for d in bo.X]
-#     observation_color = [pci_color_dict[y] if y in pci_color_dict else (255, 255, 255) for y in pci_val]
-#     path = "../results/predicted/pci/bayesian_%s_set_%d.png" % (model, set_val)
-#     a = visualize(background, bo.X[:, 0].astype(int), bo.X[:, 1].astype(int), 
-#                   observation_color, path, adjustment=True)
-    
     path = "../results/predicted/pci/real_%s_set_%d.png" % (model, set_val)
     background = get_map_image()
     p_color = [pci_decode[y] for y in curr_y_train]
@@ -580,7 +623,7 @@ def get_params_range(model_name) :
               'num_leaves': (5, 50)}
 
 
-# In[15]:
+# In[ ]:
 
 
 random = 0
@@ -620,7 +663,7 @@ bo3.maximize(init_points=10, n_iter=iterations, acq="ei", xi=1e+1, **gp_params)
 acc_dict = {}
 for set_val in demo_config[6] :
     curr_pci_data = pci_data[pci_data.set == set_val]
-    iterations = int(0.7*len(curr_pci_data)) + 5
+    iterations = int(0.2*len(curr_pci_data)) + 5
 
     temp = curr_pci_data.copy()
     temp2 = pd.DataFrame(columns=temp.columns)
@@ -643,7 +686,7 @@ for set_val in demo_config[6] :
 #     params = {'learning_rate' : 0.03, 'max_depth' : 9, 'min_child_weight':1, 'gamma':1, 
 #               'max_delta_weight':11, 'random_state' :random}
 
-#     t = get_target(model_name, all_curr_x_train, all_curr_y_train, all_curr_x_test, all_curr_y_test)
+#     t = get_target(model_name, curr_x_train, curr_y_train, curr_x_test, curr_y_test)
 #     xgbBO = BayesianOptimization(t.evaluate, 
 #                                  get_params_range(model_name),
 #                                  random_state = random, 
@@ -680,11 +723,12 @@ for x in list(bayes_inden[:, 2]) :
 
 # # Bayesian Baseline 
 
-# In[41]:
+# In[ ]:
 
 
 acc_dict = {}
 all_curr_x_train, all_curr_y_train = pd.DataFrame(), []
+all_curr_x_test, all_curr_y_test = pd.DataFrame(), []
 all_curr_x_test_dict, all_curr_y_test_dict = {}, {}
 for set_val in demo_config[6] :
     curr_pci_data = pci_data[pci_data.set == set_val]
@@ -706,6 +750,8 @@ for set_val in demo_config[6] :
 
     all_curr_x_train = all_curr_x_train.append(curr_x_train)
     all_curr_y_train += curr_y_train 
+    all_curr_x_test = all_curr_x_test.append(curr_x_test)
+    all_curr_y_test += curr_y_test
     all_curr_x_test_dict[set_val] = curr_x_test
     all_curr_y_test_dict[set_val] = curr_y_test  
 
@@ -716,17 +762,17 @@ for set_val in demo_config[6] :
 #     params = {'learning_rate' : 0.03, 'max_depth' : 9, 'min_child_weight':1, 'gamma':1, 
 #               'max_delta_weight':11, 'random_state' :random}
 
-# t = get_target(model_name, all_curr_x_train, all_curr_y_train, all_curr_x_test, all_curr_y_test)
-# xgbBO = BayesianOptimization(t.evaluate, 
-#                              get_params_range(model_name),
-#                              random_state = random, 
-#                              verbose=0)
+t = get_target(model_name, curr_x_train, curr_y_train, curr_x_test, curr_y_test)
+xgbBO = BayesianOptimization(t.evaluate, 
+                             get_params_range(model_name),
+                             random_state = random, 
+                             verbose=1)
 
-# xgbBO.maximize(init_points=5, n_iter=3)
-# print(xgbBO.res['max']['max_params'])
-# params = t.clean_param(xgbBO.res['max']['max_params'])
+xgbBO.maximize(init_points=5, n_iter=15)
+print(xgbBO.res['max']['max_params'])
+params = t.clean_param(xgbBO.res['max']['max_params'])
 
-params = lgbm_params
+# params = lgbm_params
 params['min_data_in_bin']=1
 params['min_data']=1
     
@@ -742,7 +788,7 @@ for set_val in demo_config[6] :
     print(1-accuracy)
 
 
-# In[42]:
+# In[ ]:
 
 
 # lgbm, random state 0 
@@ -753,7 +799,7 @@ for x in list(bayes_baseline[:, 2]) :
 
 # # Bayesian Transfer 
 
-# In[21]:
+# In[ ]:
 
 
 acc_dict = {}
@@ -761,7 +807,7 @@ all_curr_x_train_dict, all_curr_y_train_dict = {}, {}
 all_curr_x_test_dict, all_curr_y_test_dict = {}, {}
 for set_val in demo_config[6] :
     curr_pci_data = pci_data[pci_data.set == set_val]
-    iterations = int(0.2*len(curr_pci_data)) + 5
+    iterations = int(0.7*len(curr_pci_data)) + 5
 
     temp = curr_pci_data.copy()
     temp2 = pd.DataFrame(columns=temp.columns)
@@ -809,7 +855,7 @@ for set_val in demo_config[6] :
     
     model = reset_model(model_name, params)
     model.fit(curr_x_train, curr_y_train)
-    pickle.dump(model, open("db/%s_%s_bayesian_%s.pickle.dat" % ('PCI', model_name, set_val), "wb"))
+    pickle.dump(model, open("db/%s_%s_bayesian_transfer_%s.pickle.dat" % ('PCI', model_name, set_val), "wb"))
 
     y_pci_pred = model.predict(all_curr_x_test_dict[set_val])
     predictions = [round(value) for value in y_pci_pred]
@@ -818,7 +864,7 @@ for set_val in demo_config[6] :
     print(1-accuracy)
 
 
-# In[22]:
+# In[ ]:
 
 
 # lgbm, random state 0 

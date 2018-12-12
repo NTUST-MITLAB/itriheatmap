@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 from matplotlib import pyplot as plt
@@ -23,7 +23,7 @@ warnings.filterwarnings('ignore')
 
 # # Predicted Data Preparation 
 
-# In[2]:
+# In[ ]:
 
 
 x_cut = 50  
@@ -50,56 +50,69 @@ all_x_pci = pd.DataFrame({'location_x':x_coord_list, 'location_y':y_coord_list})
 
 # # Predict
 
-# In[8]:
+# In[ ]:
 
 
-s = 1
-config = {6 : [s]}
+def add_custom_feature(df, power_val) :
+    for p in power_val :
+        df["Power_" + str(p)] = power_val[p]
+    df = add_distance(df)
+    df = add_angle_map(df)
+    return df
+
+
+# In[ ]:
+
+
+s = None
+powers = {37:-2, 38:3, 39:0, 40:5, 41:-1, 42:16}
 ml_name = 'xgboost'
 training_method = 'baseline' #use set 
 # training_method = 'independent_set_%d' % (s) 
 # training_method = 'transfer_except_%d' % (s)  
 
 
-# In[9]:
+# In[ ]:
 
 
 model_name = 'db/%s_%s_%s' % ('PCI', ml_name, training_method)
 model = pickle.load(open(model_name + ".pickle.dat", "rb"))
-all_x_pci_dict = generate_predicted_data_pci(config, all_x_pci, refresh=True)
 
-beam_columns = [c for c in all_x_pci_dict[(6, s)] if "beam" in c]
-all_x_pci_dict = {k:all_x_pci_dict[k].drop(beam_columns, axis=1) for k in all_x_pci_dict}
+if s is None :
+    all_x_data = add_custom_feature(pd.DataFrame(all_x_pci), powers)
+else :
+    all_x_data = add_features(pd.DataFrame(all_x_pci), 6, s)
+    beam_columns = [c for c in all_x_data if "beam" in c]
+    all_x_data = all_x_data.drop(beam_columns, axis=1)
+    
+if 'transfer' not in training_method:
+    all_x_data['set'] = s if s is not None else 0
 
-if 'transfer' in training_method :
-    all_x_pci_dict = {k:all_x_pci_dict[k].drop(['set'], axis=1) for k in all_x_pci_dict}
 
-
-# In[10]:
+# In[ ]:
 
 
 proba = False
 
 
-# In[11]:
+# In[ ]:
 
 
-for prio, set_val in all_x_pci_dict :
-    all_x_pci = all_x_pci_dict[(prio, set_val)]
-    if not proba :
-        y_pred = model.predict(all_x_pci)
-        path = "../results/predicted/pci/%s/priority_%d_set_%d.png" % (ml_name, prio, set_val)
-        a = visualize_pci_heatmap(background, x_coord_view, y_coord_view, y_pred, path)
-    else :
-        y_pred=model.predict_proba(all_x_pci)
-        pci_interference = np.max(y_pred, axis=1)
-        normalize_pci_interference = matplotlib.colors.Normalize(vmin=min(pci_interference), 
-                                                                 vmax=max(pci_interference))
+s_name = s if s is not None else 0
+if not proba :
+    y_pred = model.predict(all_x_data)
+    path = "../results/predicted/pci/%s/priority_%d_set_%d.png" % (ml_name, 6, s_name)
+    a = visualize_pci_heatmap(background, x_coord_view, y_coord_view, y_pred, path)
+else :
+    y_pred=model.predict_proba(all_x_data)
+    pci_interference = np.max(y_pred, axis=1)
+    normalize_pci_interference = matplotlib.colors.Normalize(vmin=min(pci_interference), 
+                                                             vmax=max(pci_interference))
 
-        pci_interference = [cmap(normalize_pci_interference(value))[:3] for value in pci_interference]
-        pci_interference = [[int(x*255) for x in value] for value in pci_interference]    
-        path = "../results/predicted/pci_interference/%s/confidence_pci/priority_%d_set_%d.png" %         (ml_name, prio, set_val)
-        a=visualize_all_location_heatmap(background, x_coord_view, y_coord_view, pci_interference, 
-                                         cmap, normalize_pci_interference, filename=path,
-                                         size=1, figsize=(20,10), adjustment=True, show=False)
+    pci_interference = [cmap(normalize_pci_interference(value))[:3] for value in pci_interference]
+    pci_interference = [[int(x*255) for x in value] for value in pci_interference]    
+    path = "../results/predicted/pci_interference/%s/confidence_pci/priority_%d_set_%d.png" %     (ml_name, 6, s_name)
+    a=visualize_all_location_heatmap(background, x_coord_view, y_coord_view, pci_interference, 
+                                     cmap, normalize_pci_interference, filename=path,
+                                     size=1, figsize=(20,10), adjustment=True, show=False)
 

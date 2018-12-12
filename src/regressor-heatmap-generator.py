@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 from matplotlib import pyplot as plt
@@ -23,7 +23,7 @@ warnings.filterwarnings('ignore')
 
 # # Predicted Data Preparation 
 
-# In[2]:
+# In[ ]:
 
 
 x_cut = 50  
@@ -58,56 +58,75 @@ normalize_snr = matplotlib.colors.Normalize(vmin=0, vmax=30)
 
 # # Predict 
 
-# In[3]:
+# In[ ]:
 
 
 prediction_columns = ["PCI", "RSRP", "RSRQ", "SNR"]
 # min 1, max 3
-pred_index = 3
-set_val = 26
-base_model = 'xgboost'
-ml_name = 'lgbm'
+pred_index = 2
+set_val = 1
+powers = {37:-2, 38:3, 39:0, 40:5, 41:-1, 42:16}
+ml_name = 'xgboost'
 training_method = 'baseline'  
 training_method = 'independent_set_%d' % (set_val) 
 training_method = 'transfer_except_%d' % (set_val) 
+training_method = 'bayesian_independent_%d' % (set_val) 
 
 
-# In[4]:
+# In[ ]:
 
 
-config = {6 : [set_val]}
 pred_col = prediction_columns[pred_index]
 model_name = 'db/%s_%s_%s' % (pred_col, ml_name, training_method)
 model = pickle.load(open(model_name + ".pickle.dat", "rb"))
 normalized = [None, None, normalize_rsrq, normalize_snr]
 
 
-# In[5]:
+# In[ ]:
 
 
-for s in config[6] :
-    all_x_data = add_features(pd.DataFrame(all_x_pci), 6, s)
+def add_custom_feature(df, power_val) :
+    for p in power_val :
+        df["Power_" + str(p)] = power_val[p]
+    df = add_distance(df)
+    df = add_angle_map(df)
+    return df
+
+
+# In[ ]:
+
+
+if set_val is None :
+    all_x_data = add_custom_feature(pd.DataFrame(all_x_pci), powers)
+else :
+    all_x_data = add_features(pd.DataFrame(all_x_pci), 6, set_val)
     beam_columns = [c for c in all_x_data if "beam" in c]
     all_x_data = all_x_data.drop(beam_columns, axis=1)
-    
-    if 'transfer' not in training_method:
-        all_x_data['set'] = set_val
-    
-    for i in range(pred_index+1) :
-        
-        if i == 1 :
-            all_x_data['set'] = set_val
-        
-        model_name = 'db/%s_%s_%s' % (prediction_columns[i], ml_name, training_method)
-        model = pickle.load(open(model_name + ".pickle.dat", "rb"))
-        all_x_data[prediction_columns[i]] = model.predict(all_x_data)
-        
-        if i == 0 :
-            all_x_data["PCI"] = all_x_data["PCI"].apply(lambda x : pci_decode[x])
-        
+
+if 'transfer' not in training_method:
+    all_x_data['set'] = set_val if set_val is not None else 0
 
 
-# In[6]:
+# In[ ]:
+
+
+for i in range(pred_index+1) :
+    if i == 1  :
+        all_x_data['set'] = set_val if set_val is not None else 0
+    
+    model_name = 'db/%s_%s_%s' % (prediction_columns[i], ml_name, training_method)
+    print(i, model_name)
+    model = pickle.load(open(model_name + ".pickle.dat", "rb"))
+    all_x_data[prediction_columns[i]] = model.predict(all_x_data)
+
+    if i == 0 :
+        all_x_data["PCI"] = all_x_data["PCI"].apply(lambda x : pci_decode[x])
+        
+    c = [x for x in all_x_data.columns]
+    all_x_data = all_x_data[c[:2+i] + c[-1:] + c[2+i:-1]]
+
+
+# In[ ]:
 
 
 all_y = all_x_data[prediction_columns[pred_index]]
@@ -119,7 +138,8 @@ else :
     
 data_pred = [cmap(normalize(value))[:3] for value in all_y]
 data_pred = [[int(x*255) for x in value] for value in data_pred]
-path = "../results/predicted/rsrp/%s/priority_%d_set_%d.png" % (ml_name, 6, set_val)
+set_val_name = set_val if set_val is not None else 0
+path = "../results/predicted/%s/%s/priority_%d_set_%d.png" % (pred_col.lower(), ml_name, 6, set_val_name)
 a=visualize_all_location_heatmap(get_map_image(black_white=True), x_coord_view, y_coord_view, data_pred, 
                                  cmap, normalize, filename=path,
                                  size=1, figsize=(20,10), adjustment=True)
