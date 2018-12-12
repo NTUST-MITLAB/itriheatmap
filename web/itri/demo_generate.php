@@ -46,7 +46,7 @@
                   Dashboard <span class="sr-only">(current)</span>
                 </a>
               </li>
-              <li class="nav-item">
+              <li class="nav-item" style="display: none">
                 <a class="nav-link">                  
                   <select id='priority' onchange="addList(); invisibleMovie()" style="width: 150px; font-size: 24px">                  
                   <option value="priority_1">priority 1</option>
@@ -58,7 +58,7 @@
                   </select>
                 </a>
               </li>
-              <li class="nav-item">
+              <li class="nav-item" style="display: none">
                 <a class="nav-link">                                    
                   <select id='set' style="width: 150px; font-size: 24px" onchange="invisibleMovie()">
                   <option value="set1">set 1</option>
@@ -70,8 +70,8 @@
                   <option value="set7">set 7</option>
                   </select>
                 </a>
-              </li>
-              <li class="nav-item">
+              </li>                          
+              <li class="nav-item" style="display: none;">
                 <a class="nav-link">
                   <form>
                   <input type="radio" name="signal" value="Multi" checked onclick="showPCI(0); invisibleMovie()"> Multi PCI
@@ -99,7 +99,33 @@
                   <option value="snr">SNR</option>                  
                   </select>
                 </a>
-              </li>              
+              </li>
+              <li>
+                <a class="nav-link">
+                  <form name="registrationForm">
+                    <p>AP1</p>
+                     <input class="time" type="range" name="apInputName1" id="apInputId1" value="10" min="-5" max="20" oninput="apOutputId1.value = apInputId1.value">
+                     <output name="apOutputName1" id="apOutputId1">10</output>
+                    <p>AP2</p>
+                     <input type="range" name="apInputName2" id="apInputId2" value="10" min="-5" max="20" oninput="apOutputId2.value = apInputId2.value">
+                     <output name="apOutputName2" id="apOutputId2">10</output>
+                    <p>AP3</p>
+                     <input type="range" name="apInputName3" id="apInputId3" value="10" min="-5" max="20" oninput="apOutputId3.value = apInputId3.value">
+                     <output name="apOutputName3" id="apOutputId3">10</output>
+                    <p>AP4</p>
+                     <input type="range" name="apInputName4" id="apInputId4" value="10" min="-5" max="20" oninput="apOutputId4.value = apInputId4.value">
+                     <output name="apOutputName4" id="apOutputId4">10</output>
+                    <p>AP5</p>
+                     <input type="range" name="apInputName5" id="apInputId5" value="10" min="-5" max="20" oninput="apOutputId5.value = apInputId5.value">
+                     <output name="apOutputName5" id="apOutputId5">10</output>
+                    <p>AP6</p>
+                     <input type="range" name="apInputName6" id="apInputId6" value="10" min="-5" max="20" oninput="apOutputId6.value = apInputId6.value">
+                     <output name="apOutputName6" id="apOutputId6">10</output>
+                     <br>
+                     <br>
+                  </form>
+              </a> 
+              </li>               
               <li class="nav-item">
                 <a class="nav-link">
                   <button type="button" onclick="RunPythonAlgorithm()" style="font-size: 26px">Click me!</button>                      
@@ -114,29 +140,7 @@
                   </div>
                 </a>
                 <br>
-                <p id="run_time" style="border-style:solid; font-size: 20px">  Run Time :</p>
-                <a class="nav-link" style="display: none;">
-                  <form name="registrationForm">
-                    <p>AP1</p>
-                     <input class="time" type="range" name="apInputName1" id="apInputId1" value="50" min="0" max="100" oninput="apOutputId1.value = apInputId1.value">
-                     <output name="apOutputName1" id="apOutputId1">50</output>
-                    <p>AP2</p>
-                     <input type="range" name="apInputName2" id="apInputId2" value="50" min="0" max="100" oninput="apOutputId2.value = apInputId2.value">
-                     <output name="apOutputName2" id="apOutputId2">50</output>
-                    <p>AP3</p>
-                     <input type="range" name="apInputName3" id="apInputId3" value="50" min="0" max="100" oninput="apOutputId3.value = apInputId3.value">
-                     <output name="apOutputName3" id="apOutputId3">50</output>
-                    <p>AP4</p>
-                     <input type="range" name="apInputName4" id="apInputId4" value="50" min="0" max="100" oninput="apOutputId4.value = apInputId4.value">
-                     <output name="apOutputName4" id="apOutputId4">50</output>
-                    <p>AP5</p>
-                     <input type="range" name="apInputName5" id="apInputId5" value="50" min="0" max="100" oninput="apOutputId5.value = apInputId5.value">
-                     <output name="apOutputName5" id="apOutputId5">50</output>
-                    <p>AP6</p>
-                     <input type="range" name="apInputName6" id="apInputId6" value="50" min="0" max="100" oninput="apOutputId6.value = apInputId6.value">
-                     <output name="apOutputName6" id="apOutputId6">50</output>
-                  </form>
-                </a>
+                <p id="run_time" style="border-style:solid; font-size: 20px">  Run Time :</p>                
               </li>
             </ul>
           </div>
@@ -441,26 +445,49 @@
     }
 
     function RunPythonAlgorithm(){
-      var priority = document.getElementById("priority").value; 
+      var priority = "priority_6"; 
       var set = document.getElementById("set").value;
       var pci_range = $("input[name=signal]:checked").val();
       var pci_number = document.getElementById("pci_number").value;
       var jpg_kind = document.getElementById("jpg_kind").value;
+      var param_p1 = document.getElementById("apInputId1").value;
+      var param_p2 = document.getElementById("apInputId2").value;
+      var param_p3 = document.getElementById("apInputId3").value;
+      var param_p4 = document.getElementById("apInputId4").value;
+      var param_p5 = document.getElementById("apInputId5").value;
+      var param_p6 = document.getElementById("apInputId6").value;
 
-      python_path = "";
-      if(jpg_kind == "mode")        
-        //python_path = "itriheatmap-master\\src\\web_"+jpg_kind+"_ratio.py";
-        python_path = "web_"+jpg_kind+"_ratio.py";
-      else
-        //python_path = "itriheatmap-master\\src\\web_"+jpg_kind+".py";
-        python_path = "web_"+jpg_kind+".py";
-      //python_path = "itriheatmap-master\\src\\test.py"
-      param1 = set.replace("set", "");
-      param2 = pci_number;
-      if (pci_range == "Multi")
-        param2 = 0;
-      python_params = " " + param1 + " " + param2;
-      //alert(python_params);
+      python_path = "./";
+      python_filename = "web_regressor-heatmap-generator";
+      param1=1;
+      param2=0;
+      param3=0;
+      switch(jpg_kind)
+      {
+        case "pci":
+          param1="";
+          python_filename = "web_classifier-heatmap-generator";
+          break;
+        case "rsrp":
+          param1=1;
+          break;
+        case "rsrq":
+          param1=2;
+          break;
+        case "snr":
+          param1=3;
+          break;
+      }
+
+      python_path = python_filename + ".py";          
+      python_params = " " + param1 + " " + param2 + " " + param3 + " " + param_p1 + " " + param_p2 + " " + param_p3 + " " + param_p4 + " " + param_p5 + " " + param_p6;
+      /*
+      param1 -> 1:RSRP, 2:RSRQ, 3:SNR
+      param2 -> 0:lgbm, 1:xgboost
+      param3 -> 0:baseline, 1:independent_set_%d, 2:transfer_except_%d
+      */
+
+      //alert(python_path + " "+ python_params);
 
       document.getElementById("movie_time_interval").value = 5;
       document.getElementById("photo1_title").innerHTML="";
@@ -479,33 +506,24 @@
       python_command = python_path + python_params;
       url = "./itriheatmap-master/src/function_runPython.php";    
       //url = "";
+      //alert(python_command);
       d1 = new Date().getTime();
       if(priority == "priority_6"){
         //alert(python_command);                
         $.post(url,{"params":python_command}, function(data) { 
           var d = new Date();
-          findJPG_v_results(d);
+          findJPG(d);
           d2 = new Date().getTime();
           d3 = new Date(d2-d1);
           var m = (d3.getMinutes()<10 ? '0':'') + d3.getMinutes();
           var s = (d3.getSeconds()<10 ? '0':'') + d3.getSeconds();
-          document.getElementById("run_time").innerHTML="Run Time : " + m + ":" + s;
+          document.getElementById("run_time").innerHTML="Run Time : " + m + ":" + s;                          
           });
-      }
-      else
-      {
-        var d = new Date();
-        findJPG_v_results(d);
-        d2 = new Date().getTime();
-        d3 = new Date(d2-d1);
-        var m = (d3.getMinutes()<10 ? '0':'') + d3.getMinutes();
-        var s = (d3.getSeconds()<10 ? '0':'') + d3.getSeconds();
-        document.getElementById("run_time").innerHTML="Run Time : " + m + ":" + s;        
       }
           
     }
 
-    function findJPG(){
+    function findJPG(d){
       var priority = document.getElementById("priority").value; 
       var set = document.getElementById("set").value;
       var pci_range = $("input[name=signal]:checked").val();
@@ -513,75 +531,16 @@
       var jpg_kind = document.getElementById("jpg_kind").value;
       path1 = "";
       path2 = "";
-      //if(priority == "priority_6")
-      //  RunPythonAlgorithm(priority, set, pci_range, pci_number, jpg_kind);
-      if(pci_range != "Multi")
-      {        
-          if(priority != "priority_6")
-            path = "itriheatmap-master/demo_"+priority+"/images/"+set+"/";  
-          else
-            path = "itriheatmap-master/all floor(individual)/images/"+set+"/";
-          filename = pci_number+"_"+jpg_kind;     
-          path1 = path+filename;
-          if(jpg_kind != "pci")
-          {
-            path1 = path+filename+"_mean.png";            
-            path2 = path+filename+"_std.png";
-            document.getElementById("photo1_title").innerHTML="Mean of " + jpg_kind.toUpperCase();
-            document.getElementById("photo2_title").innerHTML="Standard deviation of " + jpg_kind.toUpperCase();            
-          }
-          else
-          {
-            path1 = path+filename+".png";
-            document.getElementById("photo1_title").innerHTML="PCI of Locations";
-            document.getElementById("photo2_title").innerHTML="";
-          }
-          //alert(path1);
-      }
-      else
-      {
-        if(priority != "priority_6")
-          path = "itriheatmap-master/demo_"+priority+"/images/";            
-        else
-          path = "itriheatmap-master/all floor/images/";
-        filename = set+"_"+jpg_kind;
-        path1 = path+filename;
-        if(jpg_kind != "pci")
-        {
-        if(jpg_kind == "interference")
-          {
-            filename = set+"_pci_"+jpg_kind;
-            path1 = path+filename+"_level.png";            
-            path2 = path+filename+"_ratio.png";
-            document.getElementById("photo1_title").innerHTML="Level of " + jpg_kind.toUpperCase();
-            document.getElementById("photo2_title").innerHTML="Ratio of " + jpg_kind.toUpperCase();
-          }
-          else if(jpg_kind == "mode")
-          {
-            filename = set+"_pci_"+jpg_kind;
-            path1 = path+filename+".png";
-            document.getElementById("photo1_title").innerHTML=jpg_kind.toUpperCase()+" of PCI";
-            document.getElementById("photo2_title").innerHTML="";
-          }
-          else
-          {
-            path1 = path+filename+"_mean.png";
-            path2 = path+filename+"_std.png";
-            document.getElementById("photo1_title").innerHTML="Mean of " + jpg_kind.toUpperCase();
-            document.getElementById("photo2_title").innerHTML="Standard deviation of " + jpg_kind.toUpperCase();
-          }
-          
-        }
-        else
-        {
-          path1 = path+filename+".png";
-          document.getElementById("photo1_title").innerHTML="PCI of Locations";
-          document.getElementById("photo2_title").innerHTML="";
-        }
-      }
-      document.getElementById("photo1").src=path1;
-      document.getElementById("photo2").src=path2;
-      //alert(path1);
+
+      path = "itriheatmap-master/results/predicted/priority_6_set_%d.png";
+      path = "itriheatmap-master/results/predicted/result.png";
+      //path1 = path+filename+"_mean.png";            
+      //path2 = path+filename+"_std.png";
+      path1 = path;
+      document.getElementById("photo1_title").innerHTML=jpg_kind.toUpperCase();
+      //document.getElementById("photo2_title").innerHTML="Standard deviation of " + jpg_kind.toUpperCase();
+      document.getElementById("photo1").src=path1+"?a="+d.getTime();
+      //document.getElementById("photo2").src=path2+"?a="+d.getTime();         
     }
 
     //Folder is "results"
