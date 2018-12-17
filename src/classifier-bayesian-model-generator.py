@@ -636,7 +636,7 @@ for set_val in demo_config[6] :
 
             model = reset_model(model_name, params)
             model.fit(curr_x_train, curr_y_train)
-            pickle.dump(model, open("db/%s_%s_bayesian_independent_%s.pickle.dat" %                                     ('PCI', model_name, set_val), "wb"))
+            pickle.dump(model, open("db/%s_%s_%d_bayesian_independent_%s.pickle.dat" %                                     ('PCI', model_name, percentage*100, set_val), "wb"))
 
         # for set_val in demo_config[6] :
             y_pci_pred = model.predict(curr_x_test)

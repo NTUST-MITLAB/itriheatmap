@@ -842,15 +842,13 @@ for set_val in demo_config[6] :
             rmse = math.sqrt(mse)
             print(rmse, bo.res['max']['max_params'])
             acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), rmse]
-            pickle.dump(model, open("db/%s_%s_%f_bayesian_independent_%s.pickle.dat" %                                     (pred_col, model_name, percentage, set_val), "wb"))
+            pickle.dump(model, open("db/%s_%s_%d_bayesian_independent_%s.pickle.dat" %                                     (pred_col, model_name, percentage*100, set_val), "wb"))
 
 
-# In[41]:
+# In[3]:
 
 
-# bayes_inden = np.array([x for x in acc_dict.values()])
-# for x in list(bayes_inden[:, 2]) :
-#     print(x)
+'%d' % (0.2 * 10)
 
 
 # # Bayesian Baseline 
@@ -921,14 +919,6 @@ for set_val in demo_config[6] :
 # #     print(rmse)    
 #     acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), rmse]
 #     pickle.dump(model, open("db/%s_%s_bayesian_baseline_set_%s.pickle.dat" % (pred_col, model_name, s), "wb"))
-
-
-# In[ ]:
-
-
-# bayes_baseline = np.array([x for x in acc_dict.values()])
-# for x in list(bayes_baseline[:, 2]) :
-#     print(x)
 
 
 # # Bayesian Transfer 
@@ -1002,12 +992,4 @@ for set_val in demo_config[6] :
 #     rmse = math.sqrt(mse)
 #     print(rmse)
 #     acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), rmse]
-
-
-# In[ ]:
-
-
-# bayes_transfer = np.array([x for x in acc_dict.values()])
-# for x in list(bayes_transfer[:, 2]) :
-#     print(x)
 
