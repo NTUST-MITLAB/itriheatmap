@@ -597,7 +597,7 @@ for set_val in demo_config[6] :
     for percentage in [0.2, 0.5, 0.7] :
         for model_name in model_name_list :
             curr_pci_data = pci_data[pci_data.set == set_val]
-            iterations = int(0.2*len(curr_pci_data)) + 5
+            iterations = int(percentage*len(curr_pci_data)) + 5
 
             temp = curr_pci_data.copy()
             temp2 = pd.DataFrame(columns=temp.columns)
@@ -612,8 +612,6 @@ for set_val in demo_config[6] :
             curr_y_train = temp2.PCI.apply(lambda x : pci_encode[x]).values.tolist()
             curr_x_test = temp3.drop("PCI", axis=1)
             curr_y_test = temp3.PCI.apply(lambda x : pci_encode[x]).values.tolist()
-
-            plot_gp(bo2, all_x_pci.values, curr_x_train, curr_y_train, set_val, "xgboost")
 
             t = get_target(model_name, curr_x_train, curr_y_train, curr_x_test, curr_y_test)
             xgbBO = BayesianOptimization(t.evaluate, 
@@ -636,7 +634,8 @@ for set_val in demo_config[6] :
         # for set_val in demo_config[6] :
             y_pci_pred = model.predict(curr_x_test)
             predictions = [round(value) for value in y_pci_pred]
-            accuracy = accuracy_score(curr_y_test, predictions)
+            accuracy = 1-accuracy_score(curr_y_test, predictions)
+            print(set_val, percentage, model_name, accuracy)
             acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), accuracy]
 
 

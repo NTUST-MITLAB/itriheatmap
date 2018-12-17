@@ -839,8 +839,8 @@ for set_val in demo_config[6] :
             y_pred = model.predict(curr_x_test)
             predictions = [round(value) for value in y_pred]
             mse = metric.mean_squared_error(curr_y_test, predictions)
-            rmse = math.sqrt(mse)
-            print(rmse, bo.res['max']['max_params'])
+            rmse = math.sqrt(mse) / (max(curr_y_test) - min(curr_y_test))
+            print(pred_col, set_val, percentage, model_name, nrmse)
             acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), rmse]
             pickle.dump(model, open("db/%s_%s_%d_bayesian_independent_%s.pickle.dat" %                                     (pred_col, model_name, percentage*100, set_val), "wb"))
 
