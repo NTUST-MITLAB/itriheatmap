@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 from matplotlib import pyplot as plt
@@ -23,7 +23,7 @@ warnings.filterwarnings('ignore')
 
 # # Predicted Data Preparation 
 
-# In[ ]:
+# In[2]:
 
 
 x_cut = 50  
@@ -50,7 +50,7 @@ all_x_pci = pd.DataFrame({'location_x':x_coord_list, 'location_y':y_coord_list})
 
 # # Predict
 
-# In[ ]:
+# In[3]:
 
 
 def add_custom_feature(df, power_val) :
@@ -61,18 +61,19 @@ def add_custom_feature(df, power_val) :
     return df
 
 
-# In[ ]:
+# In[4]:
 
 
-s = None
+s = 8
 powers = {37:-2, 38:3, 39:0, 40:5, 41:-1, 42:16}
 ml_name = 'xgboost'
 training_method = 'baseline' #use set 
-# training_method = 'independent_set_%d' % (s) 
-# training_method = 'transfer_except_%d' % (s)  
+training_method = 'independent_set_%d' % (s) 
+training_method = 'transfer_except_%d' % (s) 
+training_method = 'bayesian_independent_%d' % (s) 
 
 
-# In[ ]:
+# In[5]:
 
 
 model_name = 'db/%s_%s_%s' % ('PCI', ml_name, training_method)
@@ -85,17 +86,19 @@ else :
     beam_columns = [c for c in all_x_data if "beam" in c]
     all_x_data = all_x_data.drop(beam_columns, axis=1)
     
+if 'bayesian' not in training_method:
+    all_x_data['priority'] = 6
 if 'transfer' not in training_method:
     all_x_data['set'] = s if s is not None else 0
 
 
-# In[ ]:
+# In[6]:
 
 
 proba = False
 
 
-# In[ ]:
+# In[7]:
 
 
 s_name = s if s is not None else 0
