@@ -613,26 +613,21 @@ for set_val in demo_config[6] :
             curr_x_test = temp3.drop("PCI", axis=1)
             curr_y_test = temp3.PCI.apply(lambda x : pci_encode[x]).values.tolist()
 
-        #     plot_gp(bo2, all_x_pci.values, curr_x_train, curr_y_train, set_val, "xgboost")
+            plot_gp(bo2, all_x_pci.values, curr_x_train, curr_y_train, set_val, "xgboost")
 
-        #     params = {'learning_rate' : 0.03, 'max_depth' : 9, 'min_child_weight':1, 'gamma':4.2522, 
-        #               'max_delta_weight':11, 'random_state' :random}
-        #     params = {'learning_rate' : 0.03, 'max_depth' : 9, 'min_child_weight':1, 'gamma':1, 
-        #               'max_delta_weight':11, 'random_state' :random}
+            t = get_target(model_name, curr_x_train, curr_y_train, curr_x_test, curr_y_test)
+            xgbBO = BayesianOptimization(t.evaluate, 
+                                         get_params_range(model_name),
+                                         random_state = random, 
+                                         verbose=0)
 
-        #     t = get_target(model_name, curr_x_train, curr_y_train, curr_x_test, curr_y_test)
-        #     xgbBO = BayesianOptimization(t.evaluate, 
-        #                                  get_params_range(model_name),
-        #                                  random_state = random, 
-        #                                  verbose=0)
+            xgbBO.maximize(init_points=5, n_iter=3)
+            print(xgbBO.res['max']['max_params'])
+            params = t.clean_param(xgbBO.res['max']['max_params'])
 
-        #     xgbBO.maximize(init_points=5, n_iter=3)
-        #     print(xgbBO.res['max']['max_params'])
-        #     params = t.clean_param(xgbBO.res['max']['max_params'])
-
-            params = lgbm_params
-            params['min_data_in_bin']=1
-            params['min_data']=1
+            if 'lgbm' in model_name :
+                params['min_data_in_bin']=1
+                params['min_data']=1
 
             model = reset_model(model_name, params)
             model.fit(curr_x_train, curr_y_train)
@@ -643,7 +638,6 @@ for set_val in demo_config[6] :
             predictions = [round(value) for value in y_pci_pred]
             accuracy = accuracy_score(curr_y_test, predictions)
             acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), accuracy]
-            print(1-accuracy)
 
 
 # # Bayesian Baseline 
