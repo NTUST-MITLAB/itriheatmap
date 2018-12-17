@@ -582,7 +582,7 @@ bo3 = BayesianOptimization(t.optimize, {'x': (min(x_coord_list), max(x_coord_lis
                            verbose=1)
 t.bayes_opt = bo3
 
-iterations = 10
+iterations = 500
 gp_params = {"alpha": 1e-5, "n_restarts_optimizer": 3, 'random_state':random}
 bo3.maximize(init_points=10, n_iter=iterations, acq="ei", xi=1e+1, **gp_params)
 
