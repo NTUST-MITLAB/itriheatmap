@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+
 # coding: utf-8
 
-# In[2]:
+# In[1]:
 
 
 from matplotlib import pyplot as plt
@@ -38,6 +38,7 @@ angle_dict = {-135:6, -90:5, -45:4, 0:3, 45:2, 90:1, 135:8, 180:7}
 
 # whitelist_PCI = [301, 302, 120, 151, 154]
 whitelist_PCI = [37, 38, 39, 40, 41, 42, 62]
+whitelist_PCI = [37, 38, 39, 40, 41, 42]
 
 pci_encode = {k:v for k, v in zip(whitelist_PCI, range(0, len(whitelist_PCI)))}
 pci_decode = {pci_encode[k]: k for k in pci_encode}
@@ -226,7 +227,6 @@ def collect_df(paths) :
 
 def get_source(priority, set_value) :
      return '../data/demo-priority' + str(priority) + '/set' + str(set_value) + '/*'
-    
 
 def get_filenames(path) :
     mrk_filenames = []
@@ -387,11 +387,9 @@ def summary_dict_to_list(data_dict) :
 # old background shape : (218, 877)
 # new background shape : (234, 945)
 def transform_lat_lng(lat, lon) :
-    #new_lat = (lat-100) * (945/877)
-    #new_lng = (lon-50) * (234/218)
-    new_lat = (lat-100) /2 +1
-    new_lng = (lon-50) /2 +1
-    
+    new_lat = (lat-100) * (945/877)
+    new_lng = (lon-50) * (234/218)
+
     return int(new_lat), int(new_lng)
 
 def add_power(df, priority, set_value) :
@@ -449,25 +447,16 @@ def add_angle_map(df) :
         df["Angle_" + str(bs)] = df.apply(angle_func, axis=1)
     return df
 
+def add_custom_feature(df, power_val) :
+    for p in power_val :
+        df["Power_" + str(p)] = power_val[p]
+    df = add_distance(df)
+    df = add_angle_map(df)
+    return df
+
 def add_features(df, priority, set_value) :
     df = add_power(df, priority, set_value)
     df = add_beam(df, priority, set_value)
-    df = add_distance(df)
-    df = add_angle(df)
-    return df
-
-def add_features_custom(df, priority, comstum_config_list) :
-    #df = add_power(df, priority, set_value)
-    i = 0
-    power_val = {}
-    for p in comstum_config_list:
-        power_val[i+37]=comstum_config_list[i]
-        i = i+1
-
-    for p in power_val :
-        df["Power_" + str(p)] = power_val[p]
-        
-    df = add_beam(df, 6, 33)
     df = add_distance(df)
     df = add_angle(df)
     return df
@@ -485,14 +474,13 @@ def draw_base_station(source, adjustment=True) :
         color=bs_color[bs]
         
         if adjustment :
-            
             y, x = transform_lat_lng(y, x)
         
-        d = 4
+        d = 10
         top_left = (x-d, y+d)
         bottom_right = (x+d, y-d)
         source = cv2.rectangle(source, top_left, bottom_right, color, -1)
-        source = cv2.rectangle(source, top_left, bottom_right, (0,0,0), 1)
+        source = cv2.rectangle(source, top_left, bottom_right, (0,0,0), 2)
     return source
 
 def get_map_image(station=True, new_format=True, black_white=False) :
@@ -579,10 +567,8 @@ def visualize_all_location_heatmap(background, x_list, y_list, color, cmap, norm
     background = np.array(background)
     heatmap = np.array(background)
     for lon, lat, c in zip(x_list, y_list, color):
-        
         if adjustment :
             lat, lon = transform_lat_lng(lat, lon)
-            
         heatmap = cv2.circle(heatmap, (lon, lat), size, c, -1)
         
     alpha = 0.7
@@ -601,10 +587,11 @@ def visualize_all_location_heatmap(background, x_list, y_list, color, cmap, norm
                                     norm=normalize,
                                     orientation='horizontal')
     
-    if filename != None :
-        fig.savefig(filename)
     if show :
         plt.show()
+
+    if filename != None :
+        fig.savefig(filename)
 
 def extract_data(config, feature=True, pure=False) :
     result = pd.DataFrame()
@@ -654,7 +641,7 @@ def get_data(config, pure, refresh, base='../results/csv_pure/') :
         result = pd.DataFrame()
         for priority in config :
             for set_value in config[priority] :
-                set_df = pd.DataFrame.from_csv(base + "set" + str(set_value) + ".csv")
+                set_df = pd.DataFrame.from_csv(base + "set" + str(set_value) + ".csv").reset_index()
                 result = pd.concat([result, set_df])
 #         df = extract_data(config=config, feature=True, pure=pure)
 #         cols = ["location_x", "location_y", "PCI", "RSRP", "RSRQ", "SNR", 
@@ -870,9 +857,9 @@ def merge_count(df, group, value, columns) :
     df = df.merge(df_count, on=group, how="left").fillna(0)
     return df
 
-def merge_agg(df, group, value, aggregates) :
+def merge_agg(df, group, value, aggregates, columns=None) :
     df_count = pd.DataFrame(df.groupby(group)[value].agg(aggregates)).reset_index()
-    df_count.columns = group + aggregates
+    df_count.columns = group + aggregates if columns is None else group + columns
     df = df.merge(df_count, on=group, how="left").fillna(0)
     return df
 

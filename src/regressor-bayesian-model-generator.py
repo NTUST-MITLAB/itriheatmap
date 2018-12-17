@@ -8,12 +8,9 @@ from matplotlib import pyplot as plt
 from matplotlib.patches import Circle
 
 from sklearn.model_selection import train_test_split
-from keras.models import Sequential
-from keras.layers import Dense
 from pylab import *
 
 import pickle
-import keras
 import loadnotebook
 from predictionhelper import *
 
