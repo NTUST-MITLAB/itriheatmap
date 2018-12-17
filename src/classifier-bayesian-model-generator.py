@@ -25,7 +25,7 @@ from predictionhelper import *
 sets = [x for x in range(1, 34)]
 demo_config = {6 : sets}
 
-df_data = get_data(config=demo_config, pure=True, refresh=True).reset_index(drop=True)
+df_data = get_data(config=demo_config, pure=True, refresh=False).reset_index(drop=True)
 print(len(df_data))
 
 
