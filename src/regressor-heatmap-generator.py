@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 from matplotlib import pyplot as plt
@@ -23,7 +23,7 @@ warnings.filterwarnings('ignore')
 
 # # Predicted Data Preparation 
 
-# In[ ]:
+# In[2]:
 
 
 x_cut = 50  
@@ -58,7 +58,7 @@ normalize_snr = matplotlib.colors.Normalize(vmin=0, vmax=30)
 
 # # Predict 
 
-# In[ ]:
+# In[3]:
 
 
 prediction_columns = ["PCI", "RSRP", "RSRQ", "SNR"]
@@ -73,7 +73,7 @@ training_method = 'transfer_except_%d' % (set_val)
 training_method = 'bayesian_independent_%d' % (set_val) 
 
 
-# In[ ]:
+# In[4]:
 
 
 pred_col = prediction_columns[pred_index]
@@ -82,7 +82,7 @@ model = pickle.load(open(model_name + ".pickle.dat", "rb"))
 normalized = [None, None, normalize_rsrq, normalize_snr]
 
 
-# In[ ]:
+# In[5]:
 
 
 def add_custom_feature(df, power_val) :
@@ -93,7 +93,7 @@ def add_custom_feature(df, power_val) :
     return df
 
 
-# In[ ]:
+# In[6]:
 
 
 if set_val is None :
@@ -107,7 +107,7 @@ if 'transfer' not in training_method:
     all_x_data['set'] = set_val if set_val is not None else 0
 
 
-# In[ ]:
+# In[7]:
 
 
 for i in range(pred_index+1) :
@@ -126,7 +126,7 @@ for i in range(pred_index+1) :
     all_x_data = all_x_data[c[:2+i] + c[-1:] + c[2+i:-1]]
 
 
-# In[ ]:
+# In[11]:
 
 
 all_y = all_x_data[prediction_columns[pred_index]]
