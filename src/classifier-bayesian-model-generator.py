@@ -620,7 +620,7 @@ for set_val in demo_config[6] :
                                          verbose=0)
 
             xgbBO.maximize(init_points=5, n_iter=3)
-            print(xgbBO.res['max']['max_params'])
+#             print(xgbBO.res['max']['max_params'])
             params = t.clean_param(xgbBO.res['max']['max_params'])
 
             if 'lgbm' in model_name :
