@@ -664,7 +664,7 @@ from matplotlib import gridspec
 class target() :
     def optimize(self, x, y) :
         if self.bayes_opt is None or self.bayes_opt.X is None:
-            return 1000
+            return -1000
 
         bo = self.bayes_opt
         bo.gp.fit(bo.X, bo.Y)
@@ -710,7 +710,7 @@ class target2() :
         self.set_val = set_val
     
     def optimize(self, x, y) :
-        if self.bayes_opt is None or self.bayes_opt.X is None or len(self.bayes_opt.X) < 2:
+        if self.bobo is None or self.bobo.X is None or len(self.bobo.X) < 2:
             return -1000
 
         curr_df_data = df_data[df_data.set == self.set_val]
@@ -718,7 +718,7 @@ class target2() :
         temp = curr_df_data.copy()
         temp2 = pd.DataFrame(columns=curr_df_data.columns)
     
-        bo = self.bayes_opt
+        bo = self.bobo
         for x in bo.X :
             distance = lambda d: math.hypot(abs(x[0]-d[0]), abs(x[1]-d[1]))
             temp["d"] = temp.apply(distance, axis=1)
@@ -759,7 +759,7 @@ class target2() :
 #                                         'y': (min(y_coord_list), max(y_coord_list))},
 #                            random_state=random, 
 #                            verbose=1)
-# t.bayes_opt = bo2
+# t.bobo = bo2
 
 # iterations = 50
 # gp_params = {"alpha": 1e-5, "n_restarts_optimizer": 3, 'random_state':random}
@@ -788,7 +788,7 @@ bo2 = BayesianOptimization(t.optimize, {'x': (min(x_coord_list), max(x_coord_lis
                                         'y': (min(y_coord_list), max(y_coord_list))},
                            random_state=random, 
                            verbose=1)
-t.bayes_opt = bo2
+t.bobo = bo2
 
 iterations = 500
 gp_params = {"alpha": 1e-5, "n_restarts_optimizer": 3, 'random_state':random}
