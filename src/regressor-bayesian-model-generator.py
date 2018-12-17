@@ -663,10 +663,10 @@ from matplotlib import gridspec
 
 class target() :
     def optimize(self, x, y) :
-        if self.bayes_opt is None or self.bayes_opt.X is None:
+        if self.bobo is None or self.bobo.X is None:
             return -1000
 
-        bo = self.bayes_opt
+        bo = self.bobo
         bo.gp.fit(bo.X, bo.Y)
         mu, sigma = bo.gp.predict(all_x_pci.values, return_std=True)
         return -mean(sigma)
