@@ -803,45 +803,46 @@ bo2.maximize(init_points=2, n_iter=iterations, acq="ei", xi=1e+2, **gp_params)
 acc_dict = {}
 for set_val in demo_config[6] :
     for percentage in [0.2, 0.5, 0.7] :
-        curr_df_data = df_data[df_data.set == set_val]
-        iterations = int(percentage*len(curr_df_data))
+        for model_name in model_name_list :
+            curr_df_data = df_data[df_data.set == set_val]
+            iterations = int(percentage*len(curr_df_data))
 
-        temp = curr_df_data.copy()
-        temp2 = pd.DataFrame(columns=curr_df_data.columns)
+            temp = curr_df_data.copy()
+            temp2 = pd.DataFrame(columns=curr_df_data.columns)
 
-        for x in bo2.X[:iterations] :
-            distance = lambda d: math.hypot(abs(x[0]-d[0]), abs(x[1]-d[1]))
-            temp["d"] = temp.apply(distance, axis=1)
-            temp2 = temp2.append(temp.loc[temp.d.idxmin()])
+            for x in bo2.X[:iterations] :
+                distance = lambda d: math.hypot(abs(x[0]-d[0]), abs(x[1]-d[1]))
+                temp["d"] = temp.apply(distance, axis=1)
+                temp2 = temp2.append(temp.loc[temp.d.idxmin()])
 
-        temp3 = curr_df_data[~curr_df_data.index.isin(temp2.index)]
-        temp2 = curr_df_data[~curr_df_data.index.isin(temp3.index)]
+            temp3 = curr_df_data[~curr_df_data.index.isin(temp2.index)]
+            temp2 = curr_df_data[~curr_df_data.index.isin(temp3.index)]
 
-        curr_x_train = temp2.drop(exclude_train_col, axis=1)
+            curr_x_train = temp2.drop(exclude_train_col, axis=1)
 
-        curr_y_train = np.array(temp2[pred_col].values.tolist())
-        curr_x_test = temp3.drop(exclude_train_col, axis=1)
-        curr_y_test = np.array(temp3[pred_col].values.tolist())
+            curr_y_train = np.array(temp2[pred_col].values.tolist())
+            curr_x_test = temp3.drop(exclude_train_col, axis=1)
+            curr_y_test = np.array(temp3[pred_col].values.tolist())
 
-        t = get_target(model_name, curr_x_train, curr_y_train, curr_x_test, curr_y_test)
-        bo = BayesianOptimization(t.evaluate, 
-                                  get_params_range(model_name),
-                                  random_state = random, 
-                                  verbose=0)
+            t = get_target(model_name, curr_x_train, curr_y_train, curr_x_test, curr_y_test)
+            bo = BayesianOptimization(t.evaluate, 
+                                      get_params_range(model_name),
+                                      random_state = random, 
+                                      verbose=0)
 
-        bo.maximize(init_points=5, n_iter=1)
-        params = t.clean_param(bo.res['max']['max_params'])
+            bo.maximize(init_points=5, n_iter=1)
+            params = t.clean_param(bo.res['max']['max_params'])
 
-        model = reset_model(model_name, params)
-        model.fit(curr_x_train, curr_y_train)
+            model = reset_model(model_name, params)
+            model.fit(curr_x_train, curr_y_train)
 
-        y_pred = model.predict(curr_x_test)
-        predictions = [round(value) for value in y_pred]
-        mse = metric.mean_squared_error(curr_y_test, predictions)
-        rmse = math.sqrt(mse)
-        print(rmse, bo.res['max']['max_params'])
-        acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), rmse]
-        pickle.dump(model, open("db/%s_%s_%f_bayesian_independent_%s.pickle.dat" %                                 (pred_col, model_name, percentage, set_val), "wb"))
+            y_pred = model.predict(curr_x_test)
+            predictions = [round(value) for value in y_pred]
+            mse = metric.mean_squared_error(curr_y_test, predictions)
+            rmse = math.sqrt(mse)
+            print(rmse, bo.res['max']['max_params'])
+            acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), rmse]
+            pickle.dump(model, open("db/%s_%s_%f_bayesian_independent_%s.pickle.dat" %                                     (pred_col, model_name, percentage, set_val), "wb"))
 
 
 # In[41]:
