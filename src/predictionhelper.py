@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
 
 # coding: utf-8
 
@@ -387,8 +393,10 @@ def summary_dict_to_list(data_dict) :
 # old background shape : (218, 877)
 # new background shape : (234, 945)
 def transform_lat_lng(lat, lon) :
-    new_lat = (lat-100) * (945/877)
-    new_lng = (lon-50) * (234/218)
+    #new_lat = (lat-100) * (945/877)
+    #new_lng = (lon-50) * (234/218)
+    new_lat = (lat-100) /2 +1
+    new_lng = (lon-50) /2 +1
 
     return int(new_lat), int(new_lng)
 
@@ -476,18 +484,18 @@ def draw_base_station(source, adjustment=True) :
         if adjustment :
             y, x = transform_lat_lng(y, x)
         
-        d = 10
+        d = 4
         top_left = (x-d, y+d)
         bottom_right = (x+d, y-d)
         source = cv2.rectangle(source, top_left, bottom_right, color, -1)
-        source = cv2.rectangle(source, top_left, bottom_right, (0,0,0), 2)
+        source = cv2.rectangle(source, top_left, bottom_right, (0,0,0), 1)
     return source
 
 def get_map_image(station=True, new_format=True, black_white=False) :
     new_origin_img = cv2.imread('../image/5F.png') if new_format else cv2.imread('../image/map.png')
     
     if black_white :
-        new_origin_img = cv2.imread('../image/5F.png', 0) if new_format else cv2.imread('../image/map.png', 0)
+        new_origin_img = cv2.imread('../image/5F_small.png', 0) if new_format else cv2.imread('../image/map.png', 0)
         _, im_bw = cv2.threshold(new_origin_img, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
         new_origin_img = cv2.cvtColor(im_bw, cv2.COLOR_GRAY2BGR)
     
@@ -862,4 +870,10 @@ def merge_agg(df, group, value, aggregates, columns=None) :
     df_count.columns = group + aggregates if columns is None else group + columns
     df = df.merge(df_count, on=group, how="left").fillna(0)
     return df
+
+
+# In[ ]:
+
+
+
 

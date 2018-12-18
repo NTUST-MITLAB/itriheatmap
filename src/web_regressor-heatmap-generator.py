@@ -8,17 +8,20 @@ from matplotlib import pyplot as plt
 from matplotlib.patches import Circle
 
 from sklearn.model_selection import train_test_split
-#from keras.models import Sequential
-#from keras.layers import Dense
+from keras.models import Sequential
+from keras.layers import Dense
 from pylab import *
 
 import pickle
-#import keras
+import keras
 import loadnotebook
 from predictionhelper import *
 
 import warnings
 warnings.filterwarnings('ignore')
+
+import set_translator
+from bayes_opt import BayesianOptimization
 
 
 # # Predicted Data Preparation 
@@ -61,49 +64,38 @@ normalize_snr = matplotlib.colors.Normalize(vmin=0, vmax=30)
 # In[ ]:
 
 
-#prediction_columns = ["PCI", "RSRP", "RSRQ", "SNR"]
-# min 1, max 3
-#pred_index = 1
-#set_val = 26
-#base_model = 'lgbm'
-#ml_name = 'lgbm'
-#training_method = 'baseline'  
-#training_method = 'independent_set_%d' % (set_val) 
-#training_method = 'transfer_except_%d' % (set_val) 
-
-
-# In[ ]:
-
-
 import sys
 
 cell_power = []
 prefix = 3
-cell_power[:] = sys.argv[4:9]
+cell_power[:] = sys.argv[4:]
+#cell_power = [10,10,10,10,10,10]
+set_val = set_translator.get_index(cell_power)
+powers = {}
+for i in range(37,43):
+    powers[i] = cell_power[i-37]
+powers = [int(p) for p in cell_power]
 
-auto_config = [p for p in cell_power]
-set_val = 34
 
 prediction_columns = ["PCI", "RSRP", "RSRQ", "SNR"]
 # min 1, max 3
 pred_index = int(sys.argv[1])
-#set_val = 26
-#base_model = 'lgbm' 
-ml_name_list = ['lgbm','xgboost']
+#pred_index = 1
+
+ml_name_list = ['lgbm','xgboost','knn','svm']
 ml_index = int(sys.argv[2])
+#ml_index= 1
 ml_name = ml_name_list[ml_index]
-training_method_list = ['baseline' ,'independent_set_%d' % (set_val),'transfer_except_%d' % (set_val)  ]
+training_method_list = ['baseline' ,'independent_set_%d' % (set_val),
+                        'transfer_except_%d' % (set_val),'20_bayesian_independent_%d' % (set_val)   ]
 training_index = int(sys.argv[3])
+#training_index =  3
 training_method = training_method_list[training_index]
-#training_method = 'baseline'  
-#training_method = 'independent_set_%d' % (set_val) 
-#training_method = 'transfer_except_%d' % (set_val) 
 
 
 # In[ ]:
 
 
-config = {6 : [set_val]}
 pred_col = prediction_columns[pred_index]
 model_name = 'db/%s_%s_%s' % (pred_col, ml_name, training_method)
 model = pickle.load(open(model_name + ".pickle.dat", "rb"))
@@ -113,30 +105,58 @@ normalized = [None, None, normalize_rsrq, normalize_snr]
 # In[ ]:
 
 
-
-for s in auto_config :
-    all_x_data = add_features_custom(pd.DataFrame(all_x_pci), 6, auto_config)
-    beam_columns = [c for c in all_x_data if "beam" in c]
-    all_x_data = all_x_data.drop(beam_columns, axis=1)
-    
-    if 'transfer' not in training_method:
-        all_x_data['set'] = set_val
-    
-    for i in range(pred_index+1) :
-        if i == 1  :
-            all_x_data['set'] = set_val
-        
-        model_name = 'db/%s_%s_%s' % (prediction_columns[i], ml_name, training_method)
-        model = pickle.load(open(model_name + ".pickle.dat", "rb"))
-        all_x_data[prediction_columns[i]] = model.predict(all_x_data)
-        
-        if i == 0 :
-            all_x_data["PCI"] = all_x_data["PCI"].apply(lambda x : pci_decode[x])
-        
+def add_custom_feature(df, power_val) :
+    for p in power_val :
+        df["Power_" + str(p)] = power_val[p]
+    df = add_distance(df)
+    df = add_angle_map(df)
+    return df
 
 
 # In[ ]:
 
+
+if set_val is None :
+    all_x_data = add_custom_feature(pd.DataFrame(all_x_pci), powers)
+else :
+    all_x_data = add_features(pd.DataFrame(all_x_pci), 6, set_val)
+    beam_columns = [c for c in all_x_data if "beam" in c]
+    all_x_data = all_x_data.drop(beam_columns, axis=1)
+
+if 'transfer' not in training_method:
+    all_x_data['set'] = set_val if set_val is not None else 0
+
+
+# In[ ]:
+
+
+for i in range(pred_index+1) :
+    if i == 0 :
+        if 'set' in all_x_data.columns :
+            all_x_data = all_x_data.drop(['set'], axis=1)
+        
+        all_x_data['priority'] = 6 
+        if 'transfer' not in training_method :
+            all_x_data['set'] = set_val if set_val is not None else 0
+            
+    if i == 1  :
+        if 'priority' in all_x_data.columns :
+            all_x_data = all_x_data.drop(['priority'], axis=1)
+        all_x_data['set'] = set_val if set_val is not None else 0
+    
+    model_name = 'db/%s_%s_%s' % (prediction_columns[i], ml_name, training_method)
+    print(i, model_name)
+    model = pickle.load(open(model_name + ".pickle.dat", "rb"))
+    all_x_data[prediction_columns[i]] = model.predict(all_x_data)
+
+    if i == 0 :
+        all_x_data["PCI"] = all_x_data["PCI"].apply(lambda x : pci_decode[x])
+        
+    c = [x for x in all_x_data.columns]
+    all_x_data = all_x_data[c[:2+i] + c[-1:] + c[2+i:-1]]
+
+
+# In[ ]:
 
 
 all_y = all_x_data[prediction_columns[pred_index]]
@@ -148,7 +168,8 @@ else :
     
 data_pred = [cmap(normalize(value))[:3] for value in all_y]
 data_pred = [[int(x*255) for x in value] for value in data_pred]
-path = "../results/predicted/rsrp/%s/priority_%d_set_%d.png" % (ml_name, 6, set_val)
+set_val_name = set_val if set_val is not None else 0
+path = "../results/predicted/%s/%s/priority_%d_set_%d.png" % (pred_col.lower(), ml_name, 6, set_val_name)
 a=visualize_all_location_heatmap(get_map_image(black_white=True), x_coord_view, y_coord_view, data_pred, 
                                  cmap, normalize, filename=path,
                                  size=1, figsize=(20,10), adjustment=True)

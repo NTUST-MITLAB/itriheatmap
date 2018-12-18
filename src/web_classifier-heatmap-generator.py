@@ -19,6 +19,8 @@ from predictionhelper import *
 
 import warnings
 warnings.filterwarnings('ignore')
+import set_translator
+from bayes_opt import BayesianOptimization
 
 
 # # Predicted Data Preparation 
@@ -61,7 +63,18 @@ def add_custom_feature(df, power_val) :
     return df
 
 
-# In[ ]:
+# In[4]:
+
+
+s = None
+#powers = {37:-2, 38:3, 39:0, 40:5, 41:-1, 42:16}
+#ml_name = 'xgboost'
+#training_method = 'baseline' #use set 
+# training_method = 'independent_set_%d' % (s) 
+# training_method = 'transfer_except_%d' % (s)  
+
+
+# In[5]:
 
 
 import sys
@@ -69,27 +82,26 @@ import sys
 cell_power = []
 prefix = 3
 cell_power[:] = sys.argv[3:]
-
+#cell_power = [10,10,10,10,10,10]
+s = set_translator.get_index(cell_power)
 powers = {}
 for i in range(37,43):
-    powers[i] = int(cell_power[i-37])
-auto_config = [int(p) for p in cell_power]
-s = None
-
+    powers[i] = cell_power[i-37]
+powers = [int(p) for p in cell_power]
 # min 1, max 3
 
-ml_name_list = ['lgbm','xgboost']
+ml_name_list = ['lgbm','xgboost','knn','svm']
 ml_index = int(sys.argv[1])
+#ml_index = 0
 ml_name = ml_name_list[ml_index]
-training_method_list = ['baseline'  ]
+training_method_list = ['baseline' ,'independent_set_%d' % (s),
+                        'transfer_except_%d' % (s),'20_bayesian_independent_%d' % (s)  ]
 training_index = int(sys.argv[2])
+#training_index = 3
 training_method = training_method_list[training_index]
-#training_method = 'baseline'  
-#training_method = 'independent_set_%d' % (set_val) 
-#training_method = 'transfer_except_%d' % (set_val) 
 
 
-# In[5]:
+# In[6]:
 
 
 model_name = 'db/%s_%s_%s' % ('PCI', ml_name, training_method)
@@ -102,17 +114,18 @@ else :
     beam_columns = [c for c in all_x_data if "beam" in c]
     all_x_data = all_x_data.drop(beam_columns, axis=1)
     
+all_x_data['priority'] = 6
 if 'transfer' not in training_method:
     all_x_data['set'] = s if s is not None else 0
 
 
-# In[6]:
+# In[7]:
 
 
 proba = False
 
 
-# In[7]:
+# In[8]:
 
 
 s_name = s if s is not None else 0
