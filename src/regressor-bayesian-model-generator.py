@@ -31,17 +31,17 @@ df_all_data = get_data(config=demo_config, pure=True, refresh=False).reset_index
 print(len(df_all_data))
 
 
-# In[116]:
+# In[3]:
 
 
 prediction_columns = ["RSRP", "RSRQ", "SNR"]
-pred_index = 1
+pred_index = 0
 pred_col = prediction_columns[pred_index]
 group = ['location_x', 'location_y', 'priority', 'set', 'PCI']
 group2 = ['location_x', 'location_y', 'priority', 'set']
 
 
-# In[117]:
+# In[4]:
 
 
 dropped_columns = [c for c in df_all_data if "beam" in c] + prediction_columns[pred_index+1:]
@@ -62,7 +62,7 @@ df_data = df_data.drop(new_cols+['count'], axis=1)
 df_data = df_data.drop_duplicates()
 
 
-# In[118]:
+# In[5]:
 
 
 data_train, data_test = pd.DataFrame(), pd.DataFrame()
@@ -94,7 +94,7 @@ for p in demo_config :
 
 # # SVM
 
-# In[39]:
+# In[6]:
 
 
 from sklearn import svm
@@ -128,7 +128,7 @@ class svm_target :
         return -1*rmse
 
 
-# In[11]:
+# In[7]:
 
 
 # st = svm_target(x_train, y_train, 
@@ -139,7 +139,7 @@ class svm_target :
 # sBO.maximize(init_points=20, n_iter=5)
 
 
-# In[ ]:
+# In[8]:
 
 
 # svm_params = {'kernel':'rbf'}
@@ -154,7 +154,7 @@ class svm_target :
 
 # # KNN 
 
-# In[119]:
+# In[9]:
 
 
 from sklearn.neighbors import KNeighborsRegressor
@@ -213,7 +213,7 @@ class knn_target :
         return -1*rmse
 
 
-# In[17]:
+# In[10]:
 
 
 # kt = knn_target(x_train, y_train, 
@@ -227,14 +227,14 @@ class knn_target :
 # kBO.maximize(init_points=20, n_iter=5)
 
 
-# In[14]:
+# In[11]:
 
 
 # params = kt.clean_param(kBO.res['max']['max_params'])
 # params
 
 
-# In[16]:
+# In[12]:
 
 
 # model = KNeighborsRegressor(**knn_params)
@@ -248,7 +248,7 @@ class knn_target :
 
 # # XGBoost  
 
-# In[120]:
+# In[13]:
 
 
 from xgboost import XGBRegressor
@@ -363,7 +363,7 @@ class xgboost_target :
         return -1*rmse
 
 
-# In[15]:
+# In[14]:
 
 
 # xt = xgboost_target(x_train, y_train, x_test, y_test)
@@ -379,7 +379,7 @@ class xgboost_target :
 # xgbBO.maximize(init_points=10, n_iter=5)
 
 
-# In[98]:
+# In[15]:
 
 
 # params = xt.clean_param(xgbBO.res['max']['max_params'])
@@ -393,13 +393,13 @@ class xgboost_target :
 # print(rmse)
 
 
-# In[17]:
+# In[16]:
 
 
 # params
 
 
-# In[20]:
+# In[17]:
 
 
 # xgb_model = XGBRegressor(**xgboost_params)
@@ -414,7 +414,7 @@ class xgboost_target :
 
 # # LGBM 
 
-# In[121]:
+# In[18]:
 
 
 import lightgbm
@@ -530,7 +530,7 @@ class lgbm_target :
         return -1*rmse
 
 
-# In[22]:
+# In[19]:
 
 
 # lt = lgbm_target(x_train, y_train, x_test, y_test)
@@ -543,7 +543,7 @@ class lgbm_target :
 # lgbmBO.maximize(init_points=20, n_iter=5)
 
 
-# In[23]:
+# In[20]:
 
 
 # params = lt.clean_param(lgbmBO.res['max']['max_params'])
@@ -556,13 +556,13 @@ class lgbm_target :
 # print(rmse)
 
 
-# In[24]:
+# In[21]:
 
 
 # params
 
 
-# In[24]:
+# In[22]:
 
 
 # lgbm_model = LGBMRegressor(**lgbm_params)
@@ -576,14 +576,14 @@ class lgbm_target :
 
 # # Experiment 
 
-# In[111]:
+# In[23]:
 
 
 nrmse_matrix = np.empty((4, 3, 34))
 nrmse_matrix[:] = np.nan
 
 
-# In[112]:
+# In[24]:
 
 
 model_name_list = ['xgboost', 'lgbm', 'knn', 'svm']
@@ -633,7 +633,7 @@ def reset_model(model_name, params=None) :
 
 # # Generate Predicted Coordinate 
 
-# In[32]:
+# In[25]:
 
 
 x_cut = 50  
@@ -656,7 +656,7 @@ all_x_pci = pd.DataFrame({'location_x':x_coord_list, 'location_y':y_coord_list})
 
 # # Bayesian Opt - Exploration - Partial Point
 
-# In[33]:
+# In[26]:
 
 
 from matplotlib import gridspec
@@ -702,7 +702,7 @@ def plot_gp(bo, x, curr_x_train, curr_y_train, set_val, model, show_sigma_map=Fa
                                          size=1, figsize=(20,10), adjustment=False, show=False)
 
 
-# In[34]:
+# In[27]:
 
 
 class target2() :
@@ -748,7 +748,7 @@ class target2() :
         return -1*rmse
 
 
-# In[36]:
+# In[28]:
 
 
 # acc_dict = {}
@@ -769,7 +769,7 @@ class target2() :
 # print(acc_dict[set_val])
 
 
-# In[37]:
+# In[29]:
 
 
 # bayes_spec_target_inden = np.array([x for x in acc_dict.values()])
@@ -779,7 +779,7 @@ class target2() :
 
 # # Target : Variance 
 
-# In[36]:
+# In[30]:
 
 
 random = 0
@@ -797,7 +797,7 @@ bo2.maximize(init_points=2, n_iter=iterations, acq="ei", xi=1e+2, **gp_params)
 
 # # Bayesian Independent 
 
-# In[80]:
+# In[32]:
 
 
 acc_dict = {}
@@ -839,21 +839,15 @@ for set_val in demo_config[6] :
             y_pred = model.predict(curr_x_test)
             predictions = [round(value) for value in y_pred]
             mse = metric.mean_squared_error(curr_y_test, predictions)
-            rmse = math.sqrt(mse) / (max(curr_y_test) - min(curr_y_test))
+            nrmse = math.sqrt(mse) / (max(curr_y_test) - min(curr_y_test))
             print(pred_col, set_val, percentage, model_name, nrmse)
             acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), rmse]
             pickle.dump(model, open("db/%s_%s_%d_bayesian_independent_%s.pickle.dat" %                                     (pred_col, model_name, percentage*100, set_val), "wb"))
 
 
-# In[3]:
-
-
-'%d' % (0.2 * 10)
-
-
 # # Bayesian Baseline 
 
-# In[42]:
+# In[ ]:
 
 
 # acc_dict = {}
