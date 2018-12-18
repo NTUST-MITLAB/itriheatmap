@@ -35,7 +35,7 @@ print(len(df_all_data))
 
 
 prediction_columns = ["RSRP", "RSRQ", "SNR"]
-pred_index = 0
+pred_index = 1
 pred_col = prediction_columns[pred_index]
 group = ['location_x', 'location_y', 'priority', 'set', 'PCI']
 group2 = ['location_x', 'location_y', 'priority', 'set']
@@ -797,7 +797,7 @@ bo2.maximize(init_points=2, n_iter=iterations, acq="ei", xi=1e+2, **gp_params)
 
 # # Bayesian Independent 
 
-# In[32]:
+# In[ ]:
 
 
 acc_dict = {}
@@ -841,7 +841,7 @@ for set_val in demo_config[6] :
             mse = metric.mean_squared_error(curr_y_test, predictions)
             nrmse = math.sqrt(mse) / (max(curr_y_test) - min(curr_y_test))
             print(pred_col, set_val, percentage, model_name, nrmse)
-            acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), rmse]
+            acc_dict[set_val] = [len(curr_x_train), len(curr_x_test), nrmse]
             pickle.dump(model, open("db/%s_%s_%d_bayesian_independent_%s.pickle.dat" %                                     (pred_col, model_name, percentage*100, set_val), "wb"))
 
 
