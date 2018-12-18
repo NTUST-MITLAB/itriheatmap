@@ -64,13 +64,13 @@ normalize_snr = matplotlib.colors.Normalize(vmin=0, vmax=30)
 prediction_columns = ["PCI", "RSRP", "RSRQ", "SNR"]
 # min 1, max 3
 pred_index = 2
-set_val = 8
+set_val = 1
 powers = {37:-2, 38:3, 39:0, 40:5, 41:-1, 42:16}
 ml_name = 'xgboost'
 training_method = 'baseline'  
 training_method = 'independent_set_%d' % (set_val) 
 training_method = 'transfer_except_%d' % (set_val) 
-training_method = 'bayesian_independent_%d' % (set_val) 
+training_method = '20_bayesian_independent_%d' % (set_val) 
 
 
 # In[4]:
@@ -107,7 +107,7 @@ if 'transfer' not in training_method:
     all_x_data['set'] = set_val if set_val is not None else 0
 
 
-# In[7]:
+# In[8]:
 
 
 for i in range(pred_index+1) :
@@ -115,9 +115,7 @@ for i in range(pred_index+1) :
         if 'set' in all_x_data.columns :
             all_x_data = all_x_data.drop(['set'], axis=1)
         
-        if 'bayesian' not in training_method:
-            all_x_data['priority'] = 6 
-        
+        all_x_data['priority'] = 6 
         if 'transfer' not in training_method :
             all_x_data['set'] = set_val if set_val is not None else 0
             
@@ -138,7 +136,7 @@ for i in range(pred_index+1) :
     all_x_data = all_x_data[c[:2+i] + c[-1:] + c[2+i:-1]]
 
 
-# In[8]:
+# In[9]:
 
 
 all_y = all_x_data[prediction_columns[pred_index]]

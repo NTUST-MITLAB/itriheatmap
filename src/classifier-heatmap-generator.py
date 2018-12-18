@@ -70,7 +70,7 @@ ml_name = 'xgboost'
 training_method = 'baseline' #use set 
 training_method = 'independent_set_%d' % (s) 
 training_method = 'transfer_except_%d' % (s) 
-training_method = 'bayesian_independent_%d' % (s) 
+training_method = '20_bayesian_independent_%d' % (s) 
 
 
 # In[5]:
@@ -86,8 +86,7 @@ else :
     beam_columns = [c for c in all_x_data if "beam" in c]
     all_x_data = all_x_data.drop(beam_columns, axis=1)
     
-if 'bayesian' not in training_method:
-    all_x_data['priority'] = 6
+all_x_data['priority'] = 6
 if 'transfer' not in training_method:
     all_x_data['set'] = s if s is not None else 0
 
